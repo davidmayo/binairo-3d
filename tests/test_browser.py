@@ -85,7 +85,14 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     expect(page.locator(".game-card")).to_have_class(re.compile(r"\bequalized\b"))
     expect(page.locator(".orb.coral").first).to_have_css("background-color", "rgb(242, 85, 74)")
     expect(page.locator(".orb.blue").first).to_have_css("background-color", "rgb(40, 199, 206)")
-    page.wait_for_function("document.getAnimations().length > 0")
+    page.wait_for_function(
+        "Array.from(document.querySelectorAll('.orb')).some(orb => "
+        "orb.getAnimations().some(animation => animation.effect.getKeyframes().length > 20))"
+    )
+    sampled_frames = page.locator(".orb").first.evaluate(
+        "orb => Math.max(...orb.getAnimations().map(animation => animation.effect.getKeyframes().length))"
+    )
+    assert sampled_frames == 25
     expect(page.locator("#face-name")).to_have_text("Back")
     expect(page.locator(".layer-chip")).to_have_text(["4", "3", "2", "1"])
     expect(page.locator(".layer-chip").last).to_have_class(re.compile(r"\bactive\b"))

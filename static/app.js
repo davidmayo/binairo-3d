@@ -27,30 +27,37 @@ let toastTimer;
 
 const indexOf = (x, y, z) => z * 16 + y * 4 + x;
 const get = (grid, x, y, z) => grid[indexOf(x, y, z)];
+const QUARTER_TURN = Math.SQRT1_2;
 
 const FACE_CONFIGS = {
   front: {
     name: "Front", axis: "z", depthOrder: [0, 1, 2, 3], horizontalAxis: "X", verticalAxis: "Y",
+    orientation: [0, 0, 0, 1],
     coordinates: (column, row, slice) => [column, row, slice],
   },
   back: {
     name: "Back", axis: "z", depthOrder: [3, 2, 1, 0], horizontalAxis: "X", verticalAxis: "Y",
+    orientation: [0, 1, 0, 0],
     coordinates: (column, row, slice) => [SIZE - 1 - column, row, slice],
   },
   left: {
     name: "Left", axis: "x", depthOrder: [0, 1, 2, 3], horizontalAxis: "Z", verticalAxis: "Y",
+    orientation: [0, -QUARTER_TURN, 0, QUARTER_TURN],
     coordinates: (column, row, slice) => [slice, row, SIZE - 1 - column],
   },
   right: {
     name: "Right", axis: "x", depthOrder: [3, 2, 1, 0], horizontalAxis: "Z", verticalAxis: "Y",
+    orientation: [0, QUARTER_TURN, 0, QUARTER_TURN],
     coordinates: (column, row, slice) => [slice, row, column],
   },
   up: {
     name: "Up", axis: "y", depthOrder: [0, 1, 2, 3], horizontalAxis: "X", verticalAxis: "Z",
+    orientation: [QUARTER_TURN, 0, 0, QUARTER_TURN],
     coordinates: (column, row, slice) => [column, slice, SIZE - 1 - row],
   },
   down: {
     name: "Down", axis: "y", depthOrder: [3, 2, 1, 0], horizontalAxis: "X", verticalAxis: "Z",
+    orientation: [-QUARTER_TURN, 0, 0, QUARTER_TURN],
     coordinates: (column, row, slice) => [column, slice, row],
   },
 };
@@ -377,6 +384,98 @@ function captureOrbCenters() {
   }));
 }
 
+function cubeCoordinates(index) {
+  return [
+    index % 4 - 1.5,
+    Math.floor((index % 16) / 4) - 1.5,
+    Math.floor(index / 16) - 1.5,
+  ];
+}
+
+function quaternionDot(first, second) {
+  return first.reduce((sum, value, index) => sum + value * second[index], 0);
+}
+
+function slerpQuaternion(start, finish, progress) {
+  let end = finish;
+  let dot = quaternionDot(start, end);
+  if (dot < 0) {
+    end = end.map(value => -value);
+    dot = -dot;
+  }
+  dot = Math.min(1, Math.max(-1, dot));
+  if (dot > .9995) {
+    const mixed = start.map((value, index) => value + progress * (end[index] - value));
+    const length = Math.hypot(...mixed);
+    return mixed.map(value => value / length);
+  }
+  const angle = Math.acos(dot);
+  const denominator = Math.sin(angle);
+  const startWeight = Math.sin((1 - progress) * angle) / denominator;
+  const endWeight = Math.sin(progress * angle) / denominator;
+  return start.map((value, index) => startWeight * value + endWeight * end[index]);
+}
+
+function rotateVector(quaternion, vector) {
+  const [qx, qy, qz, qw] = quaternion;
+  const [vx, vy, vz] = vector;
+  const tx = 2 * (qy * vz - qz * vy);
+  const ty = 2 * (qz * vx - qx * vz);
+  const tz = 2 * (qx * vy - qy * vx);
+  return [
+    vx + qw * tx + qy * tz - qz * ty,
+    vy + qw * ty + qz * tx - qx * tz,
+    vz + qw * tz + qx * ty - qy * tx,
+  ];
+}
+
+function projectionGeometry() {
+  const boardBounds = boardEl.getBoundingClientRect();
+  const buttonWidth = boardEl.querySelector(".cell-button").getBoundingClientRect().width;
+  return {
+    centerX: boardBounds.left + boardBounds.width / 2,
+    centerY: boardBounds.top + boardBounds.height / 2,
+    gridX: boardBounds.width / SIZE,
+    gridY: boardBounds.height / SIZE,
+    depthX: buttonWidth * .10,
+    depthY: buttonWidth * (-.64 / 3),
+  };
+}
+
+function projectCubePoint(index, orientation, geometry) {
+  const [horizontal, vertical, depth] = rotateVector(orientation, cubeCoordinates(index));
+  return {
+    x: geometry.centerX + horizontal * geometry.gridX + depth * geometry.depthX,
+    y: geometry.centerY + vertical * geometry.gridY + depth * geometry.depthY,
+  };
+}
+
+function turnKeyframes(index, startOrientation, endOrientation, oldCenter, newCenter, geometry) {
+  const frameCount = 25;
+  const projectedStart = projectCubePoint(index, startOrientation, geometry);
+  const projectedEnd = projectCubePoint(index, endOrientation, geometry);
+  return Array.from({ length: frameCount }, (_, frame) => {
+    const progress = frame / (frameCount - 1);
+    const orientation = slerpQuaternion(startOrientation, endOrientation, progress);
+    const projected = projectCubePoint(index, orientation, geometry);
+
+    // Small endpoint corrections make the sampled 3D projection meet the
+    // exact CSS layout without a jump at either end of the animation.
+    const x = projected.x
+      + (1 - progress) * (oldCenter.x - projectedStart.x)
+      + progress * (newCenter.x - projectedEnd.x);
+    const y = projected.y
+      + (1 - progress) * (oldCenter.y - projectedStart.y)
+      + progress * (newCenter.y - projectedEnd.y);
+    const deltaX = x - newCenter.x;
+    const deltaY = y - newCenter.y;
+    return {
+      offset: progress,
+      transform: `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`,
+    };
+  });
+}
+
 function pause(milliseconds) {
   return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
@@ -390,6 +489,8 @@ async function setFace(face) {
   }
 
   isTurning = true;
+  const startOrientation = FACE_CONFIGS[currentFace].orientation;
+  const endOrientation = FACE_CONFIGS[face].orientation;
   gameCardEl.classList.add("turning", "equalized");
   gameCardEl.setAttribute("aria-busy", "true");
 
@@ -401,6 +502,9 @@ async function setFace(face) {
   // its old screen position so the browser can animate it into the new one.
   currentFace = face;
   render();
+  const geometry = projectionGeometry();
+  const turnAngle = 2 * Math.acos(Math.min(1, Math.abs(quaternionDot(startOrientation, endOrientation))));
+  const duration = turnAngle > Math.PI * .75 ? 520 : 430;
   const animations = Array.from(boardEl.querySelectorAll(".orb"), orb => {
     const oldCenter = oldCenters.get(orb.dataset.index);
     const bounds = orb.getBoundingClientRect();
@@ -408,13 +512,16 @@ async function setFace(face) {
       x: bounds.left + bounds.width / 2,
       y: bounds.top + bounds.height / 2,
     };
-    const deltaX = oldCenter.x - newCenter.x;
-    const deltaY = oldCenter.y - newCenter.y;
-    return orb.animate([
-      { transform: `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))` },
-      { transform: "translate(-50%, -50%)" },
-    ], {
-      duration: 430,
+    const keyframes = turnKeyframes(
+      Number(orb.dataset.index),
+      startOrientation,
+      endOrientation,
+      oldCenter,
+      newCenter,
+      geometry,
+    );
+    return orb.animate(keyframes, {
+      duration,
       easing: "cubic-bezier(.45, 0, .2, 1)",
       fill: "both",
     });
