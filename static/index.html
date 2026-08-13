@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f3efe7" />
+    <title>Binairo³ — A binary puzzle in three dimensions</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Binairo cubed home">
+          <span>BINAIRO</span><sup>3</sup>
+        </a>
+        <button class="icon-button" id="help-button" aria-label="How to play" title="How to play">
+          <span>?</span>
+        </button>
+      </header>
+
+      <main>
+        <section class="intro" aria-labelledby="page-title">
+          <div class="eyebrow"><span></span> THREE DIMENSIONS. TWO COLORS.</div>
+          <h1 id="page-title">Think outside<br />the <em>square.</em></h1>
+          <p>Every row, column, and depth line follows the classic Binairo rules. Complete all four layers to solve the cube.</p>
+        </section>
+
+        <section class="game-card" aria-label="Binairo puzzle">
+          <div class="game-header">
+            <div>
+              <span class="section-label">CURRENT VIEW</span>
+              <h2>Layer <span id="layer-number">1</span> <small>of 4</small></h2>
+            </div>
+            <div class="game-actions">
+              <button class="text-button" id="undo-button" disabled>
+                <span aria-hidden="true">↶</span> Undo
+              </button>
+              <button class="primary-button" id="new-button">
+                New cube <span aria-hidden="true">↗</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="play-area">
+            <div class="axis-label axis-y">Y</div>
+            <div class="axis-label axis-x">X</div>
+            <div class="board" id="board" role="grid" aria-label="Layer 1 of the puzzle"></div>
+          </div>
+
+          <div class="layer-controls">
+            <button class="arrow-button" id="prev-layer" aria-label="Previous layer">←</button>
+            <div class="layer-picker" id="layer-picker" aria-label="Select a layer"></div>
+            <button class="arrow-button" id="next-layer" aria-label="Next layer">→</button>
+          </div>
+
+          <div class="status-row" aria-live="polite">
+            <div class="status-copy">
+              <span class="status-dot"></span>
+              <span id="status-text">Cube in progress</span>
+            </div>
+            <div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div>
+            <strong id="progress-text">0 / 64</strong>
+          </div>
+        </section>
+
+        <section class="rules" aria-labelledby="rules-title">
+          <div class="rules-heading">
+            <span class="section-label">THE RULES</span>
+            <h2 id="rules-title">Every slice must work.</h2>
+          </div>
+          <div class="rule-list">
+            <article>
+              <span class="rule-number">01</span>
+              <div><h3>Balance the colors</h3><p>Every line contains exactly two coral and two blue circles.</p></div>
+            </article>
+            <article>
+              <span class="rule-number">02</span>
+              <div><h3>No triples</h3><p>Never place more than two circles of the same color next to each other.</p></div>
+            </article>
+            <article>
+              <span class="rule-number">03</span>
+              <div><h3>Keep lines unique</h3><p>No two rows or columns in any 2D slice may be identical.</p></div>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer><span>BINAIRO<sup>3</sup></span><p>A tiny puzzle for spatial thinkers.</p></footer>
+    </div>
+
+    <dialog id="help-dialog">
+      <button class="dialog-close" id="close-help" aria-label="Close">×</button>
+      <span class="section-label">HOW TO PLAY</span>
+      <h2>One cube. Twelve puzzles.</h2>
+      <p>Click an empty circle to make it coral, click again for blue, and once more to clear it. Use the layer controls to move through the cube.</p>
+      <p>Each horizontal, vertical, and depth-facing 4×4 slice must be a valid Binairo grid. Conflicting circles are marked as soon as a rule is broken.</p>
+      <button class="primary-button" id="start-playing">Start playing</button>
+    </dialog>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
