@@ -10,6 +10,8 @@ const layerNumberEl = document.querySelector("#layer-number");
 const layerPickerEl = document.querySelector("#layer-picker");
 const axisXEl = document.querySelector("#axis-x");
 const axisYEl = document.querySelector("#axis-y");
+const rowSumsEl = document.querySelector("#row-sums");
+const columnSumsEl = document.querySelector("#column-sums");
 const undoButton = document.querySelector("#undo-button");
 const statusText = document.querySelector("#status-text");
 const progressBar = document.querySelector("#progress-bar");
@@ -275,6 +277,57 @@ function duplicateInGroup(lines, lineIndex) {
   return lines.slice(start, start + 4).filter(other => other.every(v => v !== null) && other.map(Number).join("") === signature).length > 1;
 }
 
+function remainingColors(indices) {
+  const line = indices.map(index => values[index]);
+  return {
+    red: Math.max(0, 2 - line.filter(value => value === false).length),
+    blue: Math.max(0, 2 - line.filter(value => value === true).length),
+  };
+}
+
+function sumMarkup(remaining, vertical = false) {
+  return `<span class="remaining-red" aria-label="${remaining.red} red remaining">${remaining.red}</span>`
+    + (vertical ? '<span class="sum-divider" aria-hidden="true"></span>' : '<span class="sum-divider" aria-hidden="true">|</span>')
+    + `<span class="remaining-blue" aria-label="${remaining.blue} blue remaining">${remaining.blue}</span>`;
+}
+
+function renderSums() {
+  rowSumsEl.innerHTML = "";
+  columnSumsEl.innerHTML = "";
+  for (let row = 0; row < SIZE; row++) {
+    const indices = Array.from({ length: SIZE }, (_, column) => indexForView(column, row, currentLayer));
+    const remaining = remainingColors(indices);
+    const sum = document.createElement("div");
+    sum.className = "row-sum";
+    sum.innerHTML = sumMarkup(remaining);
+    sum.setAttribute("aria-label", `Row ${row + 1}: ${remaining.red} red and ${remaining.blue} blue remaining`);
+    rowSumsEl.appendChild(sum);
+  }
+  for (let column = 0; column < SIZE; column++) {
+    const indices = Array.from({ length: SIZE }, (_, row) => indexForView(column, row, currentLayer));
+    const remaining = remainingColors(indices);
+    const sum = document.createElement("div");
+    sum.className = "column-sum";
+    sum.innerHTML = sumMarkup(remaining, true);
+    sum.setAttribute("aria-label", `Column ${column + 1}: ${remaining.red} red and ${remaining.blue} blue remaining`);
+    columnSumsEl.appendChild(sum);
+  }
+}
+
+function alignSumsWithSelectedDepth() {
+  const firstCell = boardEl.querySelector(".cell-button");
+  const activeOrb = firstCell?.querySelector(".orb.active");
+  if (!firstCell || !activeOrb) return;
+  const cellBounds = firstCell.getBoundingClientRect();
+  const orbBounds = activeOrb.getBoundingClientRect();
+  const cellCenterX = cellBounds.left + cellBounds.width / 2;
+  const cellCenterY = cellBounds.top + cellBounds.height / 2;
+  const orbCenterX = orbBounds.left + orbBounds.width / 2;
+  const orbCenterY = orbBounds.top + orbBounds.height / 2;
+  rowSumsEl.style.transform = `translateY(${orbCenterY - cellCenterY}px)`;
+  columnSumsEl.style.transform = `translateX(${orbCenterX - cellCenterX}px)`;
+}
+
 function render() {
   const conflicts = findConflicts(values);
   const face = FACE_CONFIGS[currentFace];
@@ -326,6 +379,9 @@ function render() {
       boardEl.appendChild(cell);
     }
   }
+
+  renderSums();
+  alignSumsWithSelectedDepth();
 
   layerPickerEl.innerHTML = "";
   for (const slice of face.depthOrder) {

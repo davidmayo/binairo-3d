@@ -49,6 +49,28 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
 
     expect(page.locator(".face-button")).to_have_count(6)
     expect(page.locator(".layer-chip")).to_have_text(["1", "2", "3", "4"])
+    expect(page.locator(".row-sum")).to_have_count(4)
+    expect(page.locator(".column-sum")).to_have_count(4)
+    expect(page.locator(".row-sum").first).to_have_css("font-size", "16px")
+    expect(page.locator(".row-sum").first).to_have_css("font-weight", "600")
+
+    def assert_sums_aligned() -> None:
+        cell_box = page.locator(".cell-button").first.bounding_box()
+        orb_box = page.locator(".cell-button").first.locator(".orb.active").bounding_box()
+        row_box = page.locator(".row-sum").first.bounding_box()
+        column_box = page.locator(".column-sum").first.bounding_box()
+        assert cell_box and orb_box and row_box and column_box
+        assert row_box["y"] + row_box["height"] / 2 == pytest.approx(
+            orb_box["y"] + orb_box["height"] / 2, abs=1
+        )
+        assert column_box["x"] + column_box["width"] / 2 == pytest.approx(
+            orb_box["x"] + orb_box["width"] / 2, abs=1
+        )
+
+    assert_sums_aligned()
+    page.locator(".layer-chip").nth(2).click()
+    assert_sums_aligned()
+    page.locator(".layer-chip").first.click()
 
     first_cell = page.locator(".cell-button").first
     layer_1 = first_cell.locator(".layer-0")
@@ -75,11 +97,18 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     }
 
     editable = page.locator(".cell-button:not(.fixed)").first
+    editable_position = editable.evaluate("button => Array.from(document.querySelectorAll('.cell-button')).indexOf(button)")
+    editable_row = editable_position // 4
+    editable_column = editable_position % 4
+    row_red_before = int(page.locator(".row-sum").nth(editable_row).locator(".remaining-red").text_content())
+    column_red_before = int(page.locator(".column-sum").nth(editable_column).locator(".remaining-red").text_content())
     edited_index = int(editable.get_attribute("data-index"))
     edited_x = edited_index % 4
     edited_y = (edited_index % 16) // 4
     editable.click()
     expect(page.locator(f'.orb.active[data-index="{edited_index}"]')).to_have_class(re.compile(r"\bcoral\b"))
+    expect(page.locator(".row-sum").nth(editable_row).locator(".remaining-red")).to_have_text(str(row_red_before - 1))
+    expect(page.locator(".column-sum").nth(editable_column).locator(".remaining-red")).to_have_text(str(column_red_before - 1))
     editable.click(button="right")
     expect(page.locator(f'.orb.active[data-index="{edited_index}"]')).to_have_class(re.compile(r"\bempty\b"))
     page.locator(f'.cell-button[data-index="{edited_index}"]').click(button="right")

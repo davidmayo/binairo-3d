@@ -95,12 +95,17 @@
       .text-button:disabled { opacity: .3; cursor: default; }
 
       .play-area {
-        width: min(620px, 100%);
+        width: min(700px, 100%);
         margin: 0 auto;
-        padding: 42px 24px 25px;
-        position: relative;
+        padding: 42px 18px 18px;
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr) 64px;
+        grid-template-rows: auto 48px 12px;
+        column-gap: 8px;
       }
       .board {
+        grid-column: 2;
+        grid-row: 1;
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         aspect-ratio: 1.25;
@@ -186,12 +191,46 @@
       .game-card.equalized .orb::after { opacity: 0; }
 
       .axis-label {
-        position: absolute;
         color: var(--muted);
         font: 700 10px/1 monospace;
       }
-      .axis-y { left: 15px; top: 50%; }
-      .axis-x { left: 50%; bottom: 15px; }
+      .axis-y { grid-column: 1; grid-row: 1; align-self: center; }
+      .axis-x { grid-column: 2; grid-row: 3; justify-self: center; }
+
+      .row-sums {
+        grid-column: 3;
+        grid-row: 1;
+        display: grid;
+        grid-template-rows: repeat(4, 1fr);
+      }
+      .column-sums {
+        grid-column: 2;
+        grid-row: 2;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .row-sum, .column-sum {
+        color: var(--muted);
+        font-size: 16px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .row-sum {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+      }
+      .column-sum {
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        line-height: 1;
+      }
+      .sum-divider { color: #aaa9a2; }
+      .column-sum .sum-divider { width: 14px; height: 1px; margin: 3px 0; background: #aaa9a2; }
+      .remaining-red { color: var(--red); }
+      .remaining-blue { color: var(--blue); }
 
       .layer-controls {
         display: flex;
@@ -275,7 +314,11 @@
         .top-actions { flex-direction: column-reverse; }
         .button { min-height: 36px; padding: 0 10px; font-size: 13px; }
         .face-controls { grid-template-columns: repeat(3, 1fr); }
-        .play-area { padding-inline: 10px; }
+        .play-area {
+          padding-inline: 4px;
+          grid-template-columns: 12px minmax(0, 1fr) 48px;
+          column-gap: 3px;
+        }
         .cell-button { width: min(21vw, 88px); }
         .status-row { grid-template-columns: 1fr auto; }
         .progress-track { display: none; }
@@ -302,8 +345,10 @@
 
         <div class="play-area">
           <div class="axis-label axis-y" id="axis-y">Y</div>
-          <div class="axis-label axis-x" id="axis-x">X</div>
           <div class="board" id="board" role="grid" aria-label="Layer 1 of the puzzle"></div>
+          <div class="row-sums" id="row-sums" aria-label="Remaining colors by row"></div>
+          <div class="column-sums" id="column-sums" aria-label="Remaining colors by column"></div>
+          <div class="axis-label axis-x" id="axis-x">X</div>
         </div>
 
         <div class="layer-controls">
@@ -335,6 +380,6 @@
     </main>
 
     <div class="toast" id="toast" role="status"></div>
-    <script src="/static/app.js?v=7"></script>
+    <script src="/static/app.js?v=8"></script>
   </body>
 </html>
