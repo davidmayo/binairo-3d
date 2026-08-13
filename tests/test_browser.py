@@ -47,6 +47,9 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     repeated_board = page.locator(".orb").evaluate_all("orbs => orbs.map(orb => orb.className)")
     assert repeated_board == initial_board
 
+    expect(page.locator(".face-button")).to_have_count(6)
+    expect(page.locator(".layer-chip")).to_have_text(["1", "2", "3", "4"])
+
     first_cell = page.locator(".cell-button").first
     layer_1 = first_cell.locator(".layer-0")
     layer_4 = first_cell.locator(".layer-3")
@@ -71,5 +74,27 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
         "borderWidth": "1px",
     }
 
-    page.locator(".layer-chip").nth(2).click()
-    expect(first_cell.locator(".layer-2")).to_have_class(re.compile(r"\bactive\b"))
+    editable = page.locator(".cell-button:not(.fixed)").first
+    edited_index = int(editable.get_attribute("data-index"))
+    edited_x = edited_index % 4
+    edited_y = (edited_index % 16) // 4
+    editable.click()
+
+    page.get_by_role("button", name="View Back face").click()
+    expect(page.locator("#face-name")).to_have_text("Back")
+    expect(page.locator(".layer-chip")).to_have_text(["4", "3", "2", "1"])
+    expect(page.locator(".layer-chip").last).to_have_class(re.compile(r"\bactive\b"))
+
+    mirrored_cell = page.locator(".cell-button").nth(edited_y * 4 + (3 - edited_x))
+    assert int(mirrored_cell.get_attribute("data-index")) == edited_index
+    expect(mirrored_cell.locator(".orb.active")).to_have_class(re.compile(r"\bcoral\b"))
+
+    expected_orders = {
+        "Left": ["1", "2", "3", "4"],
+        "Right": ["4", "3", "2", "1"],
+        "Up": ["1", "2", "3", "4"],
+        "Down": ["4", "3", "2", "1"],
+    }
+    for face, order in expected_orders.items():
+        page.get_by_role("button", name=f"View {face} face").click()
+        expect(page.locator(".layer-chip")).to_have_text(order)

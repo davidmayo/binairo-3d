@@ -3,8 +3,12 @@ const CELLS = SIZE ** 3;
 const GENERATOR_SEED = 0x3b1a1044;
 
 const boardEl = document.querySelector("#board");
+const faceNameEl = document.querySelector("#face-name");
+const facePickerEl = document.querySelector("#face-picker");
 const layerNumberEl = document.querySelector("#layer-number");
 const layerPickerEl = document.querySelector("#layer-picker");
+const axisXEl = document.querySelector("#axis-x");
+const axisYEl = document.querySelector("#axis-y");
 const undoButton = document.querySelector("#undo-button");
 const statusText = document.querySelector("#status-text");
 const progressBar = document.querySelector("#progress-bar");
@@ -14,12 +18,51 @@ const toast = document.querySelector("#toast");
 let solution = [];
 let puzzle = [];
 let values = [];
+let currentFace = "front";
 let currentLayer = 0;
 let history = [];
 let toastTimer;
 
 const indexOf = (x, y, z) => z * 16 + y * 4 + x;
 const get = (grid, x, y, z) => grid[indexOf(x, y, z)];
+
+const FACE_CONFIGS = {
+  front: {
+    name: "Front", axis: "z", depthOrder: [0, 1, 2, 3], horizontalAxis: "X", verticalAxis: "Y",
+    coordinates: (column, row, slice) => [column, row, slice],
+  },
+  back: {
+    name: "Back", axis: "z", depthOrder: [3, 2, 1, 0], horizontalAxis: "X", verticalAxis: "Y",
+    coordinates: (column, row, slice) => [SIZE - 1 - column, row, slice],
+  },
+  left: {
+    name: "Left", axis: "x", depthOrder: [0, 1, 2, 3], horizontalAxis: "Z", verticalAxis: "Y",
+    coordinates: (column, row, slice) => [slice, row, SIZE - 1 - column],
+  },
+  right: {
+    name: "Right", axis: "x", depthOrder: [3, 2, 1, 0], horizontalAxis: "Z", verticalAxis: "Y",
+    coordinates: (column, row, slice) => [slice, row, column],
+  },
+  up: {
+    name: "Up", axis: "y", depthOrder: [0, 1, 2, 3], horizontalAxis: "X", verticalAxis: "Z",
+    coordinates: (column, row, slice) => [column, slice, SIZE - 1 - row],
+  },
+  down: {
+    name: "Down", axis: "y", depthOrder: [3, 2, 1, 0], horizontalAxis: "X", verticalAxis: "Z",
+    coordinates: (column, row, slice) => [column, slice, row],
+  },
+};
+
+function indexForView(column, row, slice) {
+  return indexOf(...FACE_CONFIGS[currentFace].coordinates(column, row, slice));
+}
+
+function sliceForIndex(index) {
+  const z = Math.floor(index / 16);
+  const y = Math.floor((index % 16) / 4);
+  const x = index % 4;
+  return { x, y, z }[FACE_CONFIGS[currentFace].axis];
+}
 
 function seededRandom(seed) {
   return function random() {
@@ -225,28 +268,47 @@ function duplicateInGroup(lines, lineIndex) {
 
 function render() {
   const conflicts = findConflicts(values);
+  const face = FACE_CONFIGS[currentFace];
   boardEl.innerHTML = "";
-  boardEl.setAttribute("aria-label", `Layer ${currentLayer + 1} of the puzzle`);
+  boardEl.setAttribute("aria-label", `${face.name} face, slice ${currentLayer + 1} of the puzzle`);
+  faceNameEl.textContent = face.name;
   layerNumberEl.textContent = currentLayer + 1;
+  axisXEl.textContent = face.horizontalAxis;
+  axisYEl.textContent = face.verticalAxis;
 
-  for (let y = 0; y < SIZE; y++) {
-    for (let x = 0; x < SIZE; x++) {
+  facePickerEl.innerHTML = "";
+  for (const [faceKey, config] of Object.entries(FACE_CONFIGS)) {
+    const faceButton = document.createElement("button");
+    faceButton.className = `face-button${faceKey === currentFace ? " active" : ""}`;
+    faceButton.textContent = config.name;
+    faceButton.setAttribute("aria-label", `View ${config.name} face`);
+    faceButton.setAttribute("aria-pressed", String(faceKey === currentFace));
+    faceButton.addEventListener("click", () => setFace(faceKey));
+    facePickerEl.appendChild(faceButton);
+  }
+
+  for (let row = 0; row < SIZE; row++) {
+    for (let column = 0; column < SIZE; column++) {
       const cell = document.createElement("div");
       cell.className = "cell";
       cell.setAttribute("role", "gridcell");
       const button = document.createElement("button");
-      const activeIndex = indexOf(x, y, currentLayer);
+      const activeIndex = indexForView(column, row, currentLayer);
       const fixed = puzzle[activeIndex] !== null;
       button.className = `cell-button${fixed ? " fixed" : ""}${conflicts.has(activeIndex) ? " invalid" : ""}`;
       button.dataset.index = activeIndex;
       button.disabled = fixed;
-      button.setAttribute("aria-label", `${fixed ? "Given" : "Cell"}, row ${y + 1}, column ${x + 1}: ${valueClass(values[activeIndex])}`);
+      button.setAttribute("aria-label", `${fixed ? "Given" : "Cell"}, row ${row + 1}, column ${column + 1}: ${valueClass(values[activeIndex])}`);
 
-      for (let z = 0; z < SIZE; z++) {
+      for (let depth = 0; depth < SIZE; depth++) {
+        const slice = face.depthOrder[depth];
+        const index = indexForView(column, row, slice);
         const orb = document.createElement("span");
-        const value = get(values, x, y, z);
-        const isFixed = puzzle[indexOf(x, y, z)] !== null;
-        orb.className = `orb layer-${z}${z === currentLayer ? " active" : ""} ${valueClass(value)}${isFixed ? " fixed" : ""}`;
+        const value = values[index];
+        const isFixed = puzzle[index] !== null;
+        orb.className = `orb layer-${depth}${slice === currentLayer ? " active" : ""} ${valueClass(value)}${isFixed ? " fixed" : ""}`;
+        orb.dataset.index = index;
+        orb.dataset.slice = slice + 1;
         button.appendChild(orb);
       }
       button.addEventListener("click", onCellClick);
@@ -256,12 +318,12 @@ function render() {
   }
 
   layerPickerEl.innerHTML = "";
-  for (let z = 0; z < SIZE; z++) {
+  for (const slice of face.depthOrder) {
     const chip = document.createElement("button");
-    chip.className = `layer-chip${z === currentLayer ? " active" : ""}`;
-    chip.textContent = z + 1;
-    chip.setAttribute("aria-label", `Show layer ${z + 1}`);
-    chip.addEventListener("click", () => setLayer(z));
+    chip.className = `layer-chip${slice === currentLayer ? " active" : ""}`;
+    chip.textContent = slice + 1;
+    chip.setAttribute("aria-label", `Show slice ${slice + 1}`);
+    chip.addEventListener("click", () => setLayer(slice));
     layerPickerEl.appendChild(chip);
   }
 
@@ -295,6 +357,17 @@ function setLayer(layer) {
   render();
 }
 
+function moveLayer(offset) {
+  const order = FACE_CONFIGS[currentFace].depthOrder;
+  const position = order.indexOf(currentLayer);
+  setLayer(order[(position + offset + SIZE) % SIZE]);
+}
+
+function setFace(face) {
+  currentFace = face;
+  render();
+}
+
 function showToast(message) {
   toast.textContent = message;
   toast.classList.add("show");
@@ -312,6 +385,7 @@ function newGame() {
     puzzle = makePuzzle(solution);
     values = [...puzzle];
     history = [];
+    currentFace = "front";
     currentLayer = 0;
     button.disabled = false;
     button.textContent = "New game";
@@ -320,20 +394,20 @@ function newGame() {
   }, 20));
 }
 
-document.querySelector("#prev-layer").addEventListener("click", () => setLayer(currentLayer - 1));
-document.querySelector("#next-layer").addEventListener("click", () => setLayer(currentLayer + 1));
+document.querySelector("#prev-layer").addEventListener("click", () => moveLayer(-1));
+document.querySelector("#next-layer").addEventListener("click", () => moveLayer(1));
 document.querySelector("#new-button").addEventListener("click", newGame);
 undoButton.addEventListener("click", () => {
   const move = history.pop();
   if (!move) return;
   values[move.index] = move.previous;
-  currentLayer = Math.floor(move.index / 16);
+  currentLayer = sliceForIndex(move.index);
   render();
 });
 
 document.addEventListener("keydown", event => {
-  if (event.key === "ArrowLeft") setLayer(currentLayer - 1);
-  if (event.key === "ArrowRight") setLayer(currentLayer + 1);
+  if (event.key === "ArrowLeft") moveLayer(-1);
+  if (event.key === "ArrowRight") moveLayer(1);
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
     event.preventDefault();
     undoButton.click();

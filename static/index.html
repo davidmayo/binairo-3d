@@ -66,6 +66,26 @@
       }
       .game-header h2 { margin: 0; font-size: 18px; }
       .game-header small { color: var(--muted); font-weight: 500; }
+      .face-controls {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 6px;
+        padding: 10px;
+        border-bottom: 1px solid var(--line);
+        background: #f8f7f2;
+      }
+      .face-button {
+        min-height: 36px;
+        border: 1px solid transparent;
+        border-radius: 5px;
+        color: var(--muted);
+        background: transparent;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .face-button:hover { color: var(--ink); border-color: var(--line); background: white; }
+      .face-button.active { color: white; border-color: var(--ink); background: var(--ink); }
       .text-button {
         border: 0;
         background: transparent;
@@ -232,6 +252,7 @@
         .top { align-items: flex-start; }
         .top-actions { flex-direction: column-reverse; }
         .button { min-height: 36px; padding: 0 10px; font-size: 13px; }
+        .face-controls { grid-template-columns: repeat(3, 1fr); }
         .play-area { padding-inline: 10px; }
         .cell-button { width: min(21vw, 88px); }
         .status-row { grid-template-columns: 1fr auto; }
@@ -251,13 +272,15 @@
 
       <section class="game-card" aria-label="Binairo puzzle">
         <div class="game-header">
-          <h2>Layer <span id="layer-number">1</span> <small>of 4</small></h2>
+          <h2><span id="face-name">Front</span> · Slice <span id="layer-number">1</span> <small>of 4</small></h2>
           <small>Click: red → blue → empty</small>
         </div>
 
+        <div class="face-controls" id="face-picker" aria-label="Choose a cube face"></div>
+
         <div class="play-area">
-          <div class="axis-label axis-y">Y</div>
-          <div class="axis-label axis-x">X</div>
+          <div class="axis-label axis-y" id="axis-y">Y</div>
+          <div class="axis-label axis-x" id="axis-x">X</div>
           <div class="board" id="board" role="grid" aria-label="Layer 1 of the puzzle"></div>
         </div>
 
@@ -290,6 +313,6 @@
     </main>
 
     <div class="toast" id="toast" role="status"></div>
-    <script src="/static/app.js?v=5"></script>
+    <script src="/static/app.js?v=6"></script>
   </body>
 </html>
