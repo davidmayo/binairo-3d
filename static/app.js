@@ -38,7 +38,6 @@ let currentFace = "front";
 let currentLayer = 0;
 let history = [];
 let isTurning = false;
-let isSliceMoving = false;
 let toastTimer;
 
 const indexOf = (x, y, z) => z * 16 + y * 4 + x;
@@ -513,14 +512,14 @@ function render() {
 }
 
 function onCellClick(event) {
-  if (isTurning || isSliceMoving) return;
+  if (isTurning) return;
   const index = Number(event.currentTarget.dataset.index);
   cycleCell(index, 1);
 }
 
 function onCellRightClick(event) {
   event.preventDefault();
-  if (isTurning || isSliceMoving) return;
+  if (isTurning) return;
   const index = Number(event.currentTarget.dataset.index);
   cycleCell(index, -1);
 }
@@ -534,37 +533,9 @@ function cycleCell(index, direction) {
 
 function setLayer(layer) {
   const nextLayer = (layer + SIZE) % SIZE;
-  if (nextLayer === currentLayer || isSliceMoving) return;
-  if (!cubeMovesInput.checked || isTurning || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    currentLayer = nextLayer;
-    render();
-    return;
-  }
-
-  const oldCenters = captureOrbCenters();
+  if (nextLayer === currentLayer) return;
   currentLayer = nextLayer;
   render();
-  isSliceMoving = true;
-  gameCardEl.classList.add("slice-moving");
-  const animations = Array.from(boardEl.querySelectorAll(".orb:not(.active)"), orb => {
-    const oldCenter = oldCenters.get(orb.dataset.index);
-    const bounds = orb.getBoundingClientRect();
-    const newCenter = {
-      x: bounds.left + bounds.width / 2,
-      y: bounds.top + bounds.height / 2,
-    };
-    return orb.animate([
-      { transform: `translate(calc(-50% + ${oldCenter.x - newCenter.x}px), calc(-50% + ${oldCenter.y - newCenter.y}px))` },
-      { transform: "translate(-50%, -50%)" },
-    ], {
-      duration: 190,
-      easing: "cubic-bezier(.45, 0, .2, 1)",
-    });
-  });
-  Promise.all(animations.map(animation => animation.finished.catch(() => undefined))).then(() => {
-    gameCardEl.classList.remove("slice-moving");
-    isSliceMoving = false;
-  });
 }
 
 function moveLayer(offset) {
@@ -680,7 +651,7 @@ function pause(milliseconds) {
 }
 
 async function setFace(face) {
-  if (face === currentFace || isTurning || isSliceMoving) return;
+  if (face === currentFace || isTurning) return;
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     currentFace = face;
     render();
@@ -745,7 +716,7 @@ function showToast(message) {
 }
 
 function newGame() {
-  if (isTurning || isSliceMoving) return;
+  if (isTurning) return;
   const button = document.querySelector("#new-button");
   button.disabled = true;
   button.textContent = "Building…";
@@ -784,7 +755,7 @@ for (const input of [
 }
 cubeMovesInput.addEventListener("change", updateVisualSettings);
 undoButton.addEventListener("click", () => {
-  if (isTurning || isSliceMoving) return;
+  if (isTurning) return;
   const move = history.pop();
   if (!move) return;
   values[move.index] = move.previous;

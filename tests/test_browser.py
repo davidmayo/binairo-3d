@@ -101,7 +101,6 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     stationary_before = page.locator(".cell-button").first.locator(".orb.active").bounding_box()
     stationary_cell_before = page.locator(".cell-button").first.bounding_box()
     page.locator(".layer-chip").nth(1).click()
-    expect(page.locator(".game-card")).to_have_class(re.compile(r"\bslice-moving\b"))
     stationary_after = page.locator(".cell-button").first.locator(".orb.active").bounding_box()
     stationary_cell_after = page.locator(".cell-button").first.bounding_box()
     assert stationary_before and stationary_after and stationary_cell_before and stationary_cell_after
@@ -115,7 +114,7 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     assert after_relative_y == pytest.approx(
         before_relative_y, abs=.5
     )
-    expect(page.locator(".game-card")).not_to_have_class(re.compile(r"\bslice-moving\b"))
+    assert not page.locator(".orb").evaluate_all("orbs => orbs.some(orb => orb.getAnimations().length > 0)")
     page.locator("#cube-moves").uncheck()
     page.locator(".layer-chip").first.click()
     page.locator("#settings-close").click()
