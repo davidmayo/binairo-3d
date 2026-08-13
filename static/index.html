@@ -15,6 +15,8 @@
         --red: #f2554a;
         --blue: #28c7ce;
         --empty-cell: #c0c0c0;
+        --complete: #5d9168;
+        --complete-soft: #dcebdd;
         --highlight-opacity: 0;
         --highlight-diameter: 40.6%;
         --highlight-border: 1px;
@@ -157,6 +159,14 @@
       }
       .motion-toggle input:checked + .toggle-track::after { transform: translateX(21px); }
       .motion-toggle input:focus-visible + .toggle-track { outline: 3px solid var(--blue); outline-offset: 2px; }
+      .checkbox-setting {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .checkbox-setting input { width: 17px; height: 17px; accent-color: var(--ink); }
 
       .game-card {
         overflow: hidden;
@@ -373,6 +383,8 @@
       .column-sum .sum-divider { width: 14px; height: 1px; margin: 3px 0; background: #aaa9a2; }
       .remaining-red { color: var(--red); }
       .remaining-blue { color: var(--blue); }
+      .remaining-check { color: var(--complete); font-size: 18px; line-height: 1; }
+      .remaining-counts[hidden] { display: none; }
 
       .layer-controls {
         display: flex;
@@ -392,8 +404,28 @@
         cursor: pointer;
       }
       .layer-picker { display: flex; gap: 7px; }
-      .layer-chip { color: var(--muted); font-size: 13px; font-weight: 700; }
-      .layer-chip.active { color: white; border-color: var(--ink); background: var(--ink); }
+      .layer-chip {
+        position: relative;
+        isolation: isolate;
+        width: 58px;
+        overflow: hidden;
+        color: var(--ink);
+        border: 1px solid var(--ink);
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .layer-chip::before {
+        content: "";
+        position: absolute;
+        inset: auto 0 0;
+        z-index: -1;
+        height: var(--slice-progress);
+        background: #dfe2df;
+        transition: height .18s, background .18s;
+      }
+      .layer-chip.active { border-width: 3px; }
+      .layer-chip.complete { border-color: var(--ink); background: var(--complete-soft); }
+      .layer-chip.complete::before { background: var(--complete-soft); }
 
       .status-row {
         display: grid;
@@ -519,6 +551,10 @@
             <span>Cube moves</span>
           </label>
         </div>
+        <label class="setting checkbox-setting">
+          <input id="show-remaining-counts" type="checkbox" checked />
+          <span>Show remaining counts</span>
+        </label>
         <label class="setting">
           <span class="setting-label"><span>Red cell</span></span>
           <span class="color-control">
@@ -544,7 +580,7 @@
 
       <section class="game-card" aria-label="Binairo puzzle">
         <div class="game-header">
-          <h2><span id="face-name">Front</span> · Slice <span id="layer-number">1</span> <small>of 4</small></h2>
+          <h2><span id="face-name">−Z Face</span> · <span id="slice-plane">XY</span> <span id="layer-number">1</span> <small>of 4</small></h2>
           <small>Left: red → blue · Right: blue → red</small>
         </div>
 
@@ -587,6 +623,6 @@
     </main>
 
     <div class="toast" id="toast" role="status"></div>
-    <script src="/static/app.js?v=13"></script>
+    <script src="/static/app.js?v=14"></script>
   </body>
 </html>

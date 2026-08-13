@@ -5,6 +5,7 @@ const GENERATOR_SEED = 0x3b1a1044;
 const boardEl = document.querySelector("#board");
 const gameCardEl = document.querySelector(".game-card");
 const faceNameEl = document.querySelector("#face-name");
+const slicePlaneEl = document.querySelector("#slice-plane");
 const facePickerEl = document.querySelector("#face-picker");
 const layerNumberEl = document.querySelector("#layer-number");
 const layerPickerEl = document.querySelector("#layer-picker");
@@ -30,6 +31,7 @@ const redCellColorInput = document.querySelector("#red-cell-color");
 const blueCellColorInput = document.querySelector("#blue-cell-color");
 const emptyCellColorInput = document.querySelector("#empty-cell-color");
 const cubeMovesInput = document.querySelector("#cube-moves");
+const showRemainingCountsInput = document.querySelector("#show-remaining-counts");
 
 let solution = [];
 let puzzle = [];
@@ -46,32 +48,32 @@ const QUARTER_TURN = Math.SQRT1_2;
 
 const FACE_CONFIGS = {
   front: {
-    name: "Front", axis: "z", depthOrder: [0, 1, 2, 3], horizontalAxis: "X", verticalAxis: "Y",
+    name: "−Z Face", plane: "XY", axis: "z", depthOrder: [0, 1, 2, 3], horizontalAxis: "X", verticalAxis: "Y",
     orientation: [0, 0, 0, 1],
     coordinates: (column, row, slice) => [column, row, slice],
   },
   back: {
-    name: "Back", axis: "z", depthOrder: [3, 2, 1, 0], horizontalAxis: "X", verticalAxis: "Y",
+    name: "+Z Face", plane: "XY", axis: "z", depthOrder: [3, 2, 1, 0], horizontalAxis: "X", verticalAxis: "Y",
     orientation: [0, 1, 0, 0],
     coordinates: (column, row, slice) => [SIZE - 1 - column, row, slice],
   },
   left: {
-    name: "Left", axis: "x", depthOrder: [0, 1, 2, 3], horizontalAxis: "Z", verticalAxis: "Y",
+    name: "−X Face", plane: "YZ", axis: "x", depthOrder: [0, 1, 2, 3], horizontalAxis: "Z", verticalAxis: "Y",
     orientation: [0, -QUARTER_TURN, 0, QUARTER_TURN],
     coordinates: (column, row, slice) => [slice, row, SIZE - 1 - column],
   },
   right: {
-    name: "Right", axis: "x", depthOrder: [3, 2, 1, 0], horizontalAxis: "Z", verticalAxis: "Y",
+    name: "+X Face", plane: "YZ", axis: "x", depthOrder: [3, 2, 1, 0], horizontalAxis: "Z", verticalAxis: "Y",
     orientation: [0, QUARTER_TURN, 0, QUARTER_TURN],
     coordinates: (column, row, slice) => [slice, row, column],
   },
   up: {
-    name: "Up", axis: "y", depthOrder: [0, 1, 2, 3], horizontalAxis: "X", verticalAxis: "Z",
+    name: "−Y Face", plane: "XZ", axis: "y", depthOrder: [0, 1, 2, 3], horizontalAxis: "X", verticalAxis: "Z",
     orientation: [QUARTER_TURN, 0, 0, QUARTER_TURN],
     coordinates: (column, row, slice) => [column, slice, SIZE - 1 - row],
   },
   down: {
-    name: "Down", axis: "y", depthOrder: [3, 2, 1, 0], horizontalAxis: "X", verticalAxis: "Z",
+    name: "+Y Face", plane: "XZ", axis: "y", depthOrder: [3, 2, 1, 0], horizontalAxis: "X", verticalAxis: "Z",
     orientation: [-QUARTER_TURN, 0, 0, QUARTER_TURN],
     coordinates: (column, row, slice) => [column, slice, row],
   },
@@ -349,6 +351,9 @@ function remainingColors(indices) {
 }
 
 function sumMarkup(remaining, vertical = false) {
+  if (remaining.red === 0 && remaining.blue === 0) {
+    return '<span class="remaining-check" aria-label="complete">✓</span>';
+  }
   return `<span class="remaining-red" aria-label="${remaining.red} red remaining">${remaining.red}</span>`
     + (vertical ? '<span class="sum-divider" aria-hidden="true"></span>' : '<span class="sum-divider" aria-hidden="true">|</span>')
     + `<span class="remaining-blue" aria-label="${remaining.blue} blue remaining">${remaining.blue}</span>`;
@@ -361,7 +366,8 @@ function renderSums() {
     const indices = Array.from({ length: SIZE }, (_, column) => indexForView(column, row, currentLayer));
     const remaining = remainingColors(indices);
     const sum = document.createElement("div");
-    sum.className = "row-sum";
+    sum.className = "row-sum remaining-counts";
+    sum.hidden = !showRemainingCountsInput.checked;
     sum.innerHTML = sumMarkup(remaining);
     sum.setAttribute("aria-label", `Row ${row + 1}: ${remaining.red} red and ${remaining.blue} blue remaining`);
     rowSumsEl.appendChild(sum);
@@ -370,7 +376,8 @@ function renderSums() {
     const indices = Array.from({ length: SIZE }, (_, row) => indexForView(column, row, currentLayer));
     const remaining = remainingColors(indices);
     const sum = document.createElement("div");
-    sum.className = "column-sum";
+    sum.className = "column-sum remaining-counts";
+    sum.hidden = !showRemainingCountsInput.checked;
     sum.innerHTML = sumMarkup(remaining, true);
     sum.setAttribute("aria-label", `Column ${column + 1}: ${remaining.red} red and ${remaining.blue} blue remaining`);
     columnSumsEl.appendChild(sum);
@@ -421,6 +428,7 @@ function render() {
   boardEl.innerHTML = "";
   boardEl.setAttribute("aria-label", `${face.name} face, slice ${currentLayer + 1} of the puzzle`);
   faceNameEl.textContent = face.name;
+  slicePlaneEl.textContent = face.plane;
   layerNumberEl.textContent = currentLayer + 1;
   axisXEl.textContent = face.horizontalAxis;
   axisYEl.textContent = face.verticalAxis;
@@ -430,7 +438,7 @@ function render() {
     const faceButton = document.createElement("button");
     faceButton.className = `face-button${faceKey === currentFace ? " active" : ""}`;
     faceButton.textContent = config.name;
-    faceButton.setAttribute("aria-label", `View ${config.name} face`);
+    faceButton.setAttribute("aria-label", `View ${config.name}`);
     faceButton.setAttribute("aria-pressed", String(faceKey === currentFace));
     faceButton.addEventListener("click", () => setFace(faceKey));
     facePickerEl.appendChild(faceButton);
@@ -465,6 +473,8 @@ function render() {
       const selectedDepth = face.depthOrder.indexOf(currentLayer);
       const stackSum = document.createElement("span");
       stackSum.className = `stack-sum layer-${selectedDepth}`;
+      stackSum.classList.add("remaining-counts");
+      stackSum.hidden = !showRemainingCountsInput.checked;
       stackSum.innerHTML = sumMarkup(stackRemaining);
       stackSum.setAttribute("aria-hidden", "true");
       button.setAttribute(
@@ -485,10 +495,18 @@ function render() {
 
   layerPickerEl.innerHTML = "";
   for (const slice of face.depthOrder) {
+    const sliceIndices = Array.from({ length: SIZE * SIZE }, (_, position) => {
+      const row = Math.floor(position / SIZE);
+      const column = position % SIZE;
+      return indexForView(column, row, slice);
+    });
+    const filledInSlice = sliceIndices.filter(index => values[index] !== null).length;
+    const progress = filledInSlice / (SIZE * SIZE);
     const chip = document.createElement("button");
-    chip.className = `layer-chip${slice === currentLayer ? " active" : ""}`;
-    chip.textContent = slice + 1;
-    chip.setAttribute("aria-label", `Show slice ${slice + 1}`);
+    chip.className = `layer-chip${slice === currentLayer ? " active" : ""}${progress === 1 ? " complete" : ""}`;
+    chip.textContent = `${face.plane} ${slice + 1}`;
+    chip.style.setProperty("--slice-progress", `${progress * 100}%`);
+    chip.setAttribute("aria-label", `Show ${face.plane} slice ${slice + 1}, ${filledInSlice} of 16 cells filled`);
     chip.addEventListener("click", () => setLayer(slice));
     layerPickerEl.appendChild(chip);
   }
@@ -754,6 +772,7 @@ for (const input of [
   input.addEventListener("input", updateVisualSettings);
 }
 cubeMovesInput.addEventListener("change", updateVisualSettings);
+showRemainingCountsInput.addEventListener("change", render);
 undoButton.addEventListener("click", () => {
   if (isTurning) return;
   const move = history.pop();

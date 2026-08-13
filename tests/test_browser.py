@@ -50,6 +50,11 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     page.locator("#settings-button").click()
     expect(page.locator("#settings-panel")).to_be_visible()
     expect(page.locator("#settings-button")).to_have_attribute("aria-expanded", "true")
+    expect(page.locator("#show-remaining-counts")).to_be_checked()
+    page.locator("#show-remaining-counts").uncheck()
+    expect(page.locator(".remaining-counts").first).to_be_hidden()
+    page.locator("#show-remaining-counts").check()
+    expect(page.locator(".remaining-counts").first).to_be_visible()
     panel_box = page.locator("#settings-panel").bounding_box()
     assert panel_box and panel_box["x"] == pytest.approx(0, abs=.5)
     colored_cell = page.locator(".orb.active.coral, .orb.active.blue").first
@@ -127,10 +132,17 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     expect(page.locator("#settings-panel")).to_be_hidden()
 
     expect(page.locator(".face-button")).to_have_count(6)
-    expect(page.locator(".layer-chip")).to_have_text(["1", "2", "3", "4"])
+    expect(page.locator(".layer-chip")).to_have_text(["XY 1", "XY 2", "XY 3", "XY 4"])
+    first_progress = page.locator(".layer-chip").first.evaluate(
+        "chip => ({ progress: chip.style.getPropertyValue('--slice-progress'), border: getComputedStyle(chip).borderTopWidth })"
+    )
+    assert first_progress["progress"].endswith("%")
+    assert first_progress["border"] == "3px"
+    assert page.locator(".layer-chip").nth(1).evaluate("chip => getComputedStyle(chip).borderTopWidth") == "1px"
     expect(page.locator(".row-sum")).to_have_count(4)
     expect(page.locator(".column-sum")).to_have_count(4)
     expect(page.locator(".stack-sum")).to_have_count(16)
+    expect(page.locator(".remaining-check")).not_to_have_count(0)
     expect(page.locator(".row-sum").first).to_have_css("font-size", "16px")
     expect(page.locator(".row-sum").first).to_have_css("font-weight", "600")
     expect(page.locator(".stack-sum").first).to_have_css("font-size", "15px")
@@ -223,7 +235,7 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     page.locator(f'.cell-button[data-index="{edited_index}"]').click(button="right")
     expect(page.locator(f'.orb.active[data-index="{edited_index}"]')).to_have_class(re.compile(r"\bcoral\b"))
 
-    page.get_by_role("button", name="View Back face").click()
+    page.get_by_role("button", name="View +Z Face").click()
     expect(page.locator(".game-card")).to_have_class(re.compile(r"\bturning\b"))
     expect(page.locator(".game-card")).to_have_class(re.compile(r"\bequalized\b"))
     expect(page.locator(".orb.coral").first).to_have_css("background-color", "rgb(242, 85, 74)")
@@ -236,8 +248,9 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
         "orb => Math.max(...orb.getAnimations().map(animation => animation.effect.getKeyframes().length))"
     )
     assert sampled_frames == 25
-    expect(page.locator("#face-name")).to_have_text("Back")
-    expect(page.locator(".layer-chip")).to_have_text(["4", "3", "2", "1"])
+    expect(page.locator("#face-name")).to_have_text("+Z Face")
+    expect(page.locator("#slice-plane")).to_have_text("XY")
+    expect(page.locator(".layer-chip")).to_have_text(["XY 4", "XY 3", "XY 2", "XY 1"])
     expect(page.locator(".layer-chip").last).to_have_class(re.compile(r"\bactive\b"))
 
     mirrored_cell = page.locator(".cell-button").nth(edited_y * 4 + (3 - edited_x))
@@ -246,12 +259,12 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     expect(page.locator(".game-card")).not_to_have_class(re.compile(r"\bturning\b"))
 
     expected_orders = {
-        "Left": ["1", "2", "3", "4"],
-        "Right": ["4", "3", "2", "1"],
-        "Up": ["1", "2", "3", "4"],
-        "Down": ["4", "3", "2", "1"],
+        "−X Face": ["YZ 1", "YZ 2", "YZ 3", "YZ 4"],
+        "+X Face": ["YZ 4", "YZ 3", "YZ 2", "YZ 1"],
+        "−Y Face": ["XZ 1", "XZ 2", "XZ 3", "XZ 4"],
+        "+Y Face": ["XZ 4", "XZ 3", "XZ 2", "XZ 1"],
     }
     for face, order in expected_orders.items():
-        page.get_by_role("button", name=f"View {face} face").click()
+        page.get_by_role("button", name=f"View {face}").click()
         expect(page.locator(".layer-chip")).to_have_text(order)
         expect(page.locator(".game-card")).not_to_have_class(re.compile(r"\bturning\b"))
