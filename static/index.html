@@ -112,24 +112,25 @@
         z-index: 1;
         transition: width .15s, height .15s, transform .15s, opacity .15s, background .15s;
       }
-      .orb.layer-0 { --stack-x: -30%; --stack-y: 30%; }
-      .orb.layer-1 { --stack-x: -10%; --stack-y: 10%; }
-      .orb.layer-2 { --stack-x: 10%; --stack-y: -10%; }
-      .orb.layer-3 { --stack-x: 30%; --stack-y: -30%; }
+      .orb.layer-0 { --stack-x: -15%; --stack-y: 32%; }
+      .orb.layer-1 { --stack-x: -5%; --stack-y: 11%; }
+      .orb.layer-2 { --stack-x: 5%; --stack-y: -11%; }
+      .orb.layer-3 { --stack-x: 15%; --stack-y: -32%; }
       .orb.active {
-        width: 58%;
-        height: 58%;
+        width: 40.6%;
+        height: 40.6%;
         opacity: 1;
         z-index: 5;
-        background: var(--ink);
-        border: 0;
+        background: rgba(36, 39, 38, .15);
+        border: 1px solid var(--ink);
         box-shadow: 0 4px 10px rgba(0, 0, 0, .15);
       }
       .orb.empty { background: #deddd7; border: 1px solid #cfcec7; }
       .orb.coral { background: var(--red); }
       .orb.blue { background: var(--blue); }
-      .orb.active.empty { background: var(--ink); border: 0; }
-      .orb.active.coral, .orb.active.blue { background: var(--ink); }
+      .orb.active.empty,
+      .orb.active.coral,
+      .orb.active.blue { background: rgba(36, 39, 38, .15); border: 1px solid var(--ink); }
       .orb.active.coral::after, .orb.active.blue::after {
         content: "";
         position: absolute;
@@ -289,6 +290,6 @@
     </main>
 
     <div class="toast" id="toast" role="status"></div>
-    <script src="/static/app.js?v=3"></script>
+    <script src="/static/app.js?v=5"></script>
   </body>
 </html>

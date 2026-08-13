@@ -1,5 +1,6 @@
 const SIZE = 4;
 const CELLS = SIZE ** 3;
+const GENERATOR_SEED = 0x3b1a1044;
 
 const boardEl = document.querySelector("#board");
 const layerNumberEl = document.querySelector("#layer-number");
@@ -19,6 +20,22 @@ let toastTimer;
 
 const indexOf = (x, y, z) => z * 16 + y * 4 + x;
 const get = (grid, x, y, z) => grid[indexOf(x, y, z)];
+
+function seededRandom(seed) {
+  return function random() {
+    seed |= 0;
+    seed = seed + 0x6d2b79f5 | 0;
+    let value = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    value = value + Math.imul(value ^ value >>> 7, 61 | value) ^ value;
+    return ((value ^ value >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+let random = seededRandom(GENERATOR_SEED);
+
+function resetGenerator() {
+  random = seededRandom(GENERATOR_SEED);
+}
 
 function validLine(line, complete = false) {
   const filled = line.filter(v => v !== null);
@@ -91,7 +108,7 @@ const VALID_BOARDS = generateBoards();
 function shuffle(items) {
   const result = [...items];
   for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(random() * (i + 1));
     [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
@@ -160,7 +177,7 @@ function countSolutions(start, limit = 2) {
 function makePuzzle(full) {
   const clues = [...full];
   const order = shuffle(Array.from({ length: CELLS }, (_, i) => i));
-  const targetClues = 22 + Math.floor(Math.random() * 4);
+  const targetClues = 22 + Math.floor(random() * 4);
   for (const index of order) {
     if (clues.filter(v => v !== null).length <= targetClues) break;
     const saved = clues[index];
@@ -290,6 +307,7 @@ function newGame() {
   button.disabled = true;
   button.textContent = "Building…";
   requestAnimationFrame(() => setTimeout(() => {
+    resetGenerator();
     solution = generateSolution();
     puzzle = makePuzzle(solution);
     values = [...puzzle];
@@ -322,6 +340,7 @@ document.addEventListener("keydown", event => {
   }
 });
 
+resetGenerator();
 solution = generateSolution();
 puzzle = makePuzzle(solution);
 values = [...puzzle];
