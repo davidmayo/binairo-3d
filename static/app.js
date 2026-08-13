@@ -29,6 +29,7 @@ const stackSpacingInput = document.querySelector("#stack-spacing");
 const redCellColorInput = document.querySelector("#red-cell-color");
 const blueCellColorInput = document.querySelector("#blue-cell-color");
 const emptyCellColorInput = document.querySelector("#empty-cell-color");
+const cubeMovesInput = document.querySelector("#cube-moves");
 
 let solution = [];
 let puzzle = [];
@@ -37,6 +38,7 @@ let currentFace = "front";
 let currentLayer = 0;
 let history = [];
 let isTurning = false;
+let isSliceMoving = false;
 let toastTimer;
 
 const indexOf = (x, y, z) => z * 16 + y * 4 + x;
@@ -120,14 +122,7 @@ function updateVisualSettings() {
   document.documentElement.style.setProperty("--red", redCellColor);
   document.documentElement.style.setProperty("--blue", blueCellColor);
   document.documentElement.style.setProperty("--empty-cell", emptyCellColor);
-  const angle = stackAngle * Math.PI / 180;
-  const stepX = stackSpacing * Math.cos(angle);
-  const stepY = -stackSpacing * Math.sin(angle);
-  for (let depth = 0; depth < SIZE; depth++) {
-    const offset = depth - 1.5;
-    document.documentElement.style.setProperty(`--layer-${depth}-x`, `${offset * stepX}px`);
-    document.documentElement.style.setProperty(`--layer-${depth}-y`, `${offset * stepY}px`);
-  }
+  updateStackPositions();
   document.querySelector("#highlight-opacity-output").value = `${opacity}%`;
   document.querySelector("#highlight-radius-output").value = `${radius}%`;
   document.querySelector("#highlight-border-output").value = `${border}px`;
@@ -139,6 +134,20 @@ function updateVisualSettings() {
   document.querySelector("#empty-cell-color-output").value = emptyCellColor.toUpperCase();
   alignSumsWithSelectedDepth();
   alignStackSumsWithHighlights();
+}
+
+function updateStackPositions() {
+  const stackAngle = Number(stackAngleInput.value);
+  const stackSpacing = Number(stackSpacingInput.value);
+  const angle = stackAngle * Math.PI / 180;
+  const stepX = stackSpacing * Math.cos(angle);
+  const stepY = -stackSpacing * Math.sin(angle);
+  const selectedDepth = FACE_CONFIGS[currentFace].depthOrder.indexOf(currentLayer);
+  for (let depth = 0; depth < SIZE; depth++) {
+    const offset = cubeMovesInput.checked ? depth - selectedDepth : depth - 1.5;
+    document.documentElement.style.setProperty(`--layer-${depth}-x`, `${offset * stepX}px`);
+    document.documentElement.style.setProperty(`--layer-${depth}-y`, `${offset * stepY}px`);
+  }
 }
 
 function setSettingsOpen(open) {
@@ -407,6 +416,7 @@ function alignStackSumsWithHighlights() {
 }
 
 function render() {
+  updateStackPositions();
   const conflicts = findConflicts(values);
   const face = FACE_CONFIGS[currentFace];
   boardEl.innerHTML = "";
@@ -503,14 +513,14 @@ function render() {
 }
 
 function onCellClick(event) {
-  if (isTurning) return;
+  if (isTurning || isSliceMoving) return;
   const index = Number(event.currentTarget.dataset.index);
   cycleCell(index, 1);
 }
 
 function onCellRightClick(event) {
   event.preventDefault();
-  if (isTurning) return;
+  if (isTurning || isSliceMoving) return;
   const index = Number(event.currentTarget.dataset.index);
   cycleCell(index, -1);
 }
@@ -523,8 +533,38 @@ function cycleCell(index, direction) {
 }
 
 function setLayer(layer) {
-  currentLayer = (layer + SIZE) % SIZE;
+  const nextLayer = (layer + SIZE) % SIZE;
+  if (nextLayer === currentLayer || isSliceMoving) return;
+  if (!cubeMovesInput.checked || isTurning || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    currentLayer = nextLayer;
+    render();
+    return;
+  }
+
+  const oldCenters = captureOrbCenters();
+  currentLayer = nextLayer;
   render();
+  isSliceMoving = true;
+  gameCardEl.classList.add("slice-moving");
+  const animations = Array.from(boardEl.querySelectorAll(".orb:not(.active)"), orb => {
+    const oldCenter = oldCenters.get(orb.dataset.index);
+    const bounds = orb.getBoundingClientRect();
+    const newCenter = {
+      x: bounds.left + bounds.width / 2,
+      y: bounds.top + bounds.height / 2,
+    };
+    return orb.animate([
+      { transform: `translate(calc(-50% + ${oldCenter.x - newCenter.x}px), calc(-50% + ${oldCenter.y - newCenter.y}px))` },
+      { transform: "translate(-50%, -50%)" },
+    ], {
+      duration: 190,
+      easing: "cubic-bezier(.45, 0, .2, 1)",
+    });
+  });
+  Promise.all(animations.map(animation => animation.finished.catch(() => undefined))).then(() => {
+    gameCardEl.classList.remove("slice-moving");
+    isSliceMoving = false;
+  });
 }
 
 function moveLayer(offset) {
@@ -640,7 +680,7 @@ function pause(milliseconds) {
 }
 
 async function setFace(face) {
-  if (face === currentFace || isTurning) return;
+  if (face === currentFace || isTurning || isSliceMoving) return;
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     currentFace = face;
     render();
@@ -705,7 +745,7 @@ function showToast(message) {
 }
 
 function newGame() {
-  if (isTurning) return;
+  if (isTurning || isSliceMoving) return;
   const button = document.querySelector("#new-button");
   button.disabled = true;
   button.textContent = "Building…";
@@ -742,8 +782,9 @@ for (const input of [
 ]) {
   input.addEventListener("input", updateVisualSettings);
 }
+cubeMovesInput.addEventListener("change", updateVisualSettings);
 undoButton.addEventListener("click", () => {
-  if (isTurning) return;
+  if (isTurning || isSliceMoving) return;
   const move = history.pop();
   if (!move) return;
   values[move.index] = move.previous;

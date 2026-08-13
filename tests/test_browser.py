@@ -55,8 +55,8 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     colored_cell = page.locator(".orb.active.coral, .orb.active.blue").first
     colored_diameter_before = colored_cell.evaluate("orb => getComputedStyle(orb, '::after').width")
     background_empty = page.locator(".orb.empty:not(.active)").first
-    expect(background_empty).to_have_css("background-color", "rgb(36, 39, 38)")
-    expect(background_empty).to_have_css("opacity", "0.3")
+    expect(background_empty).to_have_css("background-color", "rgb(192, 192, 192)")
+    expect(background_empty).to_have_css("opacity", "0.25")
     page.locator("#highlight-opacity").fill("30")
     page.locator("#highlight-radius").fill("25")
     page.locator("#highlight-border").fill("2")
@@ -87,15 +87,37 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     expect(page.locator(".orb.blue:not(.active)").first).to_have_css("background-color", "rgb(17, 102, 204)")
     expect(page.locator(".orb.empty:not(.active)").first).to_have_css("background-color", "rgb(85, 102, 119)")
     expect(page.locator("#red-cell-color-output")).to_have_text("#AA1122")
-    page.locator("#highlight-opacity").fill("15")
+    page.locator("#highlight-opacity").fill("0")
     page.locator("#highlight-radius").fill("20.3")
     page.locator("#highlight-border").fill("1")
-    page.locator("#background-opacity").fill("30")
+    page.locator("#background-opacity").fill("25")
     page.locator("#stack-angle").fill("65")
     page.locator("#stack-spacing").fill("24")
     page.locator("#red-cell-color").fill("#f2554a")
     page.locator("#blue-cell-color").fill("#28c7ce")
-    page.locator("#empty-cell-color").fill("#242726")
+    page.locator("#empty-cell-color").fill("#c0c0c0")
+    expect(page.locator("#cube-moves")).not_to_be_checked()
+    page.locator("#cube-moves").check()
+    stationary_before = page.locator(".cell-button").first.locator(".orb.active").bounding_box()
+    stationary_cell_before = page.locator(".cell-button").first.bounding_box()
+    page.locator(".layer-chip").nth(1).click()
+    expect(page.locator(".game-card")).to_have_class(re.compile(r"\bslice-moving\b"))
+    stationary_after = page.locator(".cell-button").first.locator(".orb.active").bounding_box()
+    stationary_cell_after = page.locator(".cell-button").first.bounding_box()
+    assert stationary_before and stationary_after and stationary_cell_before and stationary_cell_after
+    before_relative_x = stationary_before["x"] + stationary_before["width"] / 2 - stationary_cell_before["x"]
+    before_relative_y = stationary_before["y"] + stationary_before["height"] / 2 - stationary_cell_before["y"]
+    after_relative_x = stationary_after["x"] + stationary_after["width"] / 2 - stationary_cell_after["x"]
+    after_relative_y = stationary_after["y"] + stationary_after["height"] / 2 - stationary_cell_after["y"]
+    assert after_relative_x == pytest.approx(
+        before_relative_x, abs=.5
+    )
+    assert after_relative_y == pytest.approx(
+        before_relative_y, abs=.5
+    )
+    expect(page.locator(".game-card")).not_to_have_class(re.compile(r"\bslice-moving\b"))
+    page.locator("#cube-moves").uncheck()
+    page.locator(".layer-chip").first.click()
     page.locator("#settings-close").click()
     expect(page.locator("#settings-panel")).to_be_hidden()
 
@@ -167,7 +189,7 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
         "borderWidth: getComputedStyle(orb).borderTopWidth })"
     )
     assert selected_style == {
-        "background": "rgba(36, 39, 38, 0.15)",
+        "background": "rgba(36, 39, 38, 0)",
         "borderColor": "rgb(36, 39, 38)",
         "borderWidth": "1px",
     }

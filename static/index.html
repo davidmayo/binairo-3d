@@ -14,11 +14,11 @@
         --line: #d9d8d1;
         --red: #f2554a;
         --blue: #28c7ce;
-        --empty-cell: #242726;
-        --highlight-opacity: .15;
+        --empty-cell: #c0c0c0;
+        --highlight-opacity: 0;
         --highlight-diameter: 40.6%;
         --highlight-border: 1px;
-        --background-cell-opacity: .3;
+        --background-cell-opacity: .25;
       }
 
       * { box-sizing: border-box; }
@@ -113,6 +113,50 @@
         font: 12px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
       }
       .settings-note { margin: -6px 0 4px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+      .motion-toggle {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr 46px 1fr;
+        align-items: center;
+        gap: 9px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .motion-toggle > span:first-child { text-align: right; }
+      .motion-toggle input {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        z-index: 2;
+        width: 46px;
+        height: 24px;
+        margin: 0;
+        opacity: 0;
+        cursor: pointer;
+        transform: translate(-50%, -50%);
+      }
+      .toggle-track {
+        position: relative;
+        width: 46px;
+        height: 24px;
+        border: 1px solid var(--ink);
+        border-radius: 999px;
+        background: white;
+        cursor: pointer;
+      }
+      .toggle-track::after {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: 3px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--ink);
+        transition: transform .15s;
+      }
+      .motion-toggle input:checked + .toggle-track::after { transform: translateX(21px); }
+      .motion-toggle input:focus-visible + .toggle-track { outline: 3px solid var(--blue); outline-offset: 2px; }
 
       .game-card {
         overflow: hidden;
@@ -263,6 +307,9 @@
       .game-card.turning .face-controls,
       .game-card.turning .cell-button,
       .game-card.turning .layer-controls { pointer-events: none; }
+      .game-card.slice-moving .cell-button,
+      .game-card.slice-moving .layer-controls,
+      .game-card.slice-moving .face-controls { pointer-events: none; }
       .game-card.equalized .orb,
       .game-card.equalized .orb.active,
       .game-card.equalized .orb.empty,
@@ -437,8 +484,8 @@
         </div>
         <p class="settings-note">These controls affect the gray selected-slice marker. Red and blue board cells keep their normal size and color.</p>
         <label class="setting">
-          <span class="setting-label"><span>Highlight circle opacity</span><output id="highlight-opacity-output">15%</output></span>
-          <input id="highlight-opacity" type="range" min="0" max="100" step="1" value="15" />
+          <span class="setting-label"><span>Highlight circle opacity</span><output id="highlight-opacity-output">0%</output></span>
+          <input id="highlight-opacity" type="range" min="0" max="100" step="1" value="0" />
         </label>
         <label class="setting">
           <span class="setting-label"><span>Highlight circle radius</span><output id="highlight-radius-output">20.3%</output></span>
@@ -449,8 +496,8 @@
           <input id="highlight-border" type="range" min="0" max="5" step="0.25" value="1" />
         </label>
         <label class="setting">
-          <span class="setting-label"><span>Background cell opacity</span><output id="background-opacity-output">30%</output></span>
-          <input id="background-opacity" type="range" min="0" max="100" step="1" value="30" />
+          <span class="setting-label"><span>Background cell opacity</span><output id="background-opacity-output">25%</output></span>
+          <input id="background-opacity" type="range" min="0" max="100" step="1" value="25" />
         </label>
         <label class="setting">
           <span class="setting-label"><span>Stack angle</span><output id="stack-angle-output">65°</output></span>
@@ -460,6 +507,15 @@
           <span class="setting-label"><span>Stack spacing</span><output id="stack-spacing-output">24px</output></span>
           <input id="stack-spacing" type="range" min="8" max="40" step="0.5" value="24" />
         </label>
+        <div class="setting">
+          <span class="setting-label"><span>Slice switching</span></span>
+          <label class="motion-toggle">
+            <span>View moves</span>
+            <input id="cube-moves" type="checkbox" />
+            <span class="toggle-track" aria-hidden="true"></span>
+            <span>Cube moves</span>
+          </label>
+        </div>
         <label class="setting">
           <span class="setting-label"><span>Red cell</span></span>
           <span class="color-control">
@@ -477,8 +533,8 @@
         <label class="setting">
           <span class="setting-label"><span>Empty cell</span></span>
           <span class="color-control">
-            <input id="empty-cell-color" type="color" value="#242726" />
-            <output id="empty-cell-color-output">#242726</output>
+            <input id="empty-cell-color" type="color" value="#c0c0c0" />
+            <output id="empty-cell-color-output">#C0C0C0</output>
           </span>
         </label>
       </section>
@@ -528,6 +584,6 @@
     </main>
 
     <div class="toast" id="toast" role="status"></div>
-    <script src="/static/app.js?v=11"></script>
+    <script src="/static/app.js?v=12"></script>
   </body>
 </html>
