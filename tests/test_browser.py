@@ -57,6 +57,10 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     background_empty = page.locator(".orb.empty:not(.active)").first
     expect(background_empty).to_have_css("background-color", "rgb(192, 192, 192)")
     expect(background_empty).to_have_css("opacity", "0.25")
+    highlighted_empty = page.locator(".orb.active.empty").first
+    expect(highlighted_empty).to_have_css("--empty-cell", "#c0c0c0")
+    assert highlighted_empty.evaluate("orb => getComputedStyle(orb, '::after').backgroundColor") == "rgb(192, 192, 192)"
+    assert highlighted_empty.evaluate("orb => getComputedStyle(orb, '::after').opacity") == "0.25"
     page.locator("#highlight-opacity").fill("30")
     page.locator("#highlight-radius").fill("25")
     page.locator("#highlight-border").fill("2")
@@ -71,6 +75,7 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     assert colored_diameter_after == colored_diameter_before
     page.locator("#background-opacity").fill("45")
     expect(background_empty).to_have_css("opacity", "0.45")
+    assert highlighted_empty.evaluate("orb => getComputedStyle(orb, '::after').opacity") == "0.45"
     page.locator("#stack-angle").fill("45")
     page.locator("#stack-spacing").fill("30")
     stack_near_box = page.locator(".cell-button").first.locator(".orb.layer-0").bounding_box()
@@ -86,6 +91,7 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     expect(page.locator(".orb.coral:not(.active)").first).to_have_css("background-color", "rgb(170, 17, 34)")
     expect(page.locator(".orb.blue:not(.active)").first).to_have_css("background-color", "rgb(17, 102, 204)")
     expect(page.locator(".orb.empty:not(.active)").first).to_have_css("background-color", "rgb(85, 102, 119)")
+    assert highlighted_empty.evaluate("orb => getComputedStyle(orb, '::after').backgroundColor") == "rgb(85, 102, 119)"
     expect(page.locator("#red-cell-color-output")).to_have_text("#AA1122")
     page.locator("#highlight-opacity").fill("0")
     page.locator("#highlight-radius").fill("20.3")

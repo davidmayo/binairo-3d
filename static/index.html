@@ -269,7 +269,9 @@
         background: rgb(36 39 38 / var(--highlight-opacity));
         border: var(--highlight-border) solid var(--ink);
       }
-      .orb.active.coral::after, .orb.active.blue::after {
+      .orb.active.empty::after,
+      .orb.active.coral::after,
+      .orb.active.blue::after {
         content: "";
         position: absolute;
         left: 50%;
@@ -280,6 +282,10 @@
         opacity: 1;
         transform: translate(-50%, -50%);
         transition: opacity .16s;
+      }
+      .orb.active.empty::after {
+        background: var(--empty-cell);
+        opacity: var(--background-cell-opacity);
       }
       .orb.active.coral::after { background: var(--red); }
       .orb.active.blue::after { background: var(--blue); }
