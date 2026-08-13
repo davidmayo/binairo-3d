@@ -36,7 +36,6 @@
         margin-bottom: 18px;
       }
       h1 { margin: 0; font-size: 24px; letter-spacing: -.04em; }
-      h1 sup { color: var(--red); }
       .top-actions { display: flex; gap: 8px; }
       .button {
         min-height: 40px;
@@ -286,7 +285,7 @@
   <body>
     <main>
       <header class="top">
-        <h1>3D Binairo <sup>4×4×4</sup></h1>
+        <h1>3D Binairo</h1>
         <div class="top-actions">
           <button class="button" id="undo-button" disabled>Undo</button>
           <button class="button primary" id="new-button">New game</button>
@@ -296,7 +295,7 @@
       <section class="game-card" aria-label="Binairo puzzle">
         <div class="game-header">
           <h2><span id="face-name">Front</span> · Slice <span id="layer-number">1</span> <small>of 4</small></h2>
-          <small>Click: red → blue → empty</small>
+          <small>Left: red → blue · Right: blue → red</small>
         </div>
 
         <div class="face-controls" id="face-picker" aria-label="Choose a cube face"></div>

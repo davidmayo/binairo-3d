@@ -321,6 +321,7 @@ function render() {
         button.appendChild(orb);
       }
       button.addEventListener("click", onCellClick);
+      button.addEventListener("contextmenu", onCellRightClick);
       cell.appendChild(button);
       boardEl.appendChild(cell);
     }
@@ -342,7 +343,7 @@ function render() {
   undoButton.disabled = history.length === 0;
 
   if (filled === CELLS && conflicts.size === 0 && values.every((v, i) => v === solution[i])) {
-    statusText.textContent = "Cube complete — beautifully done";
+    statusText.textContent = "Cube complete";
     document.querySelector(".status-dot").style.background = "var(--blue)";
     showToast("Cube solved! Every slice is valid.");
   } else if (conflicts.size) {
@@ -357,8 +358,20 @@ function render() {
 function onCellClick(event) {
   if (isTurning) return;
   const index = Number(event.currentTarget.dataset.index);
+  cycleCell(index, 1);
+}
+
+function onCellRightClick(event) {
+  event.preventDefault();
+  if (isTurning) return;
+  const index = Number(event.currentTarget.dataset.index);
+  cycleCell(index, -1);
+}
+
+function cycleCell(index, direction) {
   history.push({ index, previous: values[index] });
-  values[index] = values[index] === null ? false : values[index] === false ? true : null;
+  const cycle = direction > 0 ? [null, false, true] : [null, true, false];
+  values[index] = cycle[(cycle.indexOf(values[index]) + 1) % cycle.length];
   render();
 }
 

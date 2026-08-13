@@ -79,6 +79,13 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     edited_x = edited_index % 4
     edited_y = (edited_index % 16) // 4
     editable.click()
+    expect(page.locator(f'.orb.active[data-index="{edited_index}"]')).to_have_class(re.compile(r"\bcoral\b"))
+    editable.click(button="right")
+    expect(page.locator(f'.orb.active[data-index="{edited_index}"]')).to_have_class(re.compile(r"\bempty\b"))
+    page.locator(f'.cell-button[data-index="{edited_index}"]').click(button="right")
+    expect(page.locator(f'.orb.active[data-index="{edited_index}"]')).to_have_class(re.compile(r"\bblue\b"))
+    page.locator(f'.cell-button[data-index="{edited_index}"]').click(button="right")
+    expect(page.locator(f'.orb.active[data-index="{edited_index}"]')).to_have_class(re.compile(r"\bcoral\b"))
 
     page.get_by_role("button", name="View Back face").click()
     expect(page.locator(".game-card")).to_have_class(re.compile(r"\bturning\b"))
