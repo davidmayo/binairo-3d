@@ -136,10 +136,10 @@
         z-index: 1;
         transition: width .16s, height .16s, transform .16s, opacity .16s, background .16s, border-color .16s, box-shadow .16s;
       }
-      .orb.layer-0 { --stack-x: -15%; --stack-y: 32%; }
-      .orb.layer-1 { --stack-x: -5%; --stack-y: 11%; }
-      .orb.layer-2 { --stack-x: 5%; --stack-y: -11%; }
-      .orb.layer-3 { --stack-x: 15%; --stack-y: -32%; }
+      .orb.layer-0, .stack-sum.layer-0 { --stack-x: -15%; --stack-y: 32%; }
+      .orb.layer-1, .stack-sum.layer-1 { --stack-x: -5%; --stack-y: 11%; }
+      .orb.layer-2, .stack-sum.layer-2 { --stack-x: 5%; --stack-y: -11%; }
+      .orb.layer-3, .stack-sum.layer-3 { --stack-x: 15%; --stack-y: -32%; }
       .orb.active {
         width: 40.6%;
         height: 40.6%;
@@ -168,6 +168,23 @@
       .orb.active.fixed::after { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .38); }
       .cell-button:hover:not(.fixed) .orb.active { transform: translate(-50%, -50%) scale(1.08); }
       .cell-button.invalid .orb.active { outline: 3px solid var(--red); outline-offset: 3px; }
+      .stack-sum {
+        position: absolute;
+        left: calc(50% + var(--stack-x));
+        top: calc(50% + var(--stack-y));
+        z-index: 6;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        color: var(--muted);
+        font-size: 15px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        pointer-events: none;
+        transform: translate(calc(-50% - 38px), calc(-50% - 18px));
+        transition: opacity .16s;
+      }
       .game-card.turning { cursor: progress; }
       .game-card.turning .face-controls,
       .game-card.turning .cell-button,
@@ -189,6 +206,7 @@
       .game-card.equalized .orb.coral { background: var(--red); }
       .game-card.equalized .orb.blue { background: var(--blue); }
       .game-card.equalized .orb::after { opacity: 0; }
+      .game-card.turning .stack-sum { opacity: 0; }
 
       .axis-label {
         color: var(--muted);

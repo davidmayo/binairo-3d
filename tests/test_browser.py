@@ -51,8 +51,32 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     expect(page.locator(".layer-chip")).to_have_text(["1", "2", "3", "4"])
     expect(page.locator(".row-sum")).to_have_count(4)
     expect(page.locator(".column-sum")).to_have_count(4)
+    expect(page.locator(".stack-sum")).to_have_count(16)
     expect(page.locator(".row-sum").first).to_have_css("font-size", "16px")
     expect(page.locator(".row-sum").first).to_have_css("font-weight", "600")
+    expect(page.locator(".stack-sum").first).to_have_css("font-size", "15px")
+
+    first_active_box = page.locator(".cell-button").first.locator(".orb.active").bounding_box()
+    first_far_box = page.locator(".cell-button").first.locator(".orb.layer-3").bounding_box()
+    first_stack_sum_box = page.locator(".stack-sum").first.bounding_box()
+    assert first_active_box and first_far_box and first_stack_sum_box
+    assert first_stack_sum_box["x"] + first_stack_sum_box["width"] < first_active_box["x"]
+    active_center = (
+        first_active_box["x"] + first_active_box["width"] / 2,
+        first_active_box["y"] + first_active_box["height"] / 2,
+    )
+    stack_vector = (
+        first_far_box["x"] + first_far_box["width"] / 2 - active_center[0],
+        first_far_box["y"] + first_far_box["height"] / 2 - active_center[1],
+    )
+    label_vector = (
+        first_stack_sum_box["x"] + first_stack_sum_box["width"] / 2 - active_center[0],
+        first_stack_sum_box["y"] + first_stack_sum_box["height"] / 2 - active_center[1],
+    )
+    cosine = (stack_vector[0] * label_vector[0] + stack_vector[1] * label_vector[1]) / (
+        math.hypot(*stack_vector) * math.hypot(*label_vector)
+    )
+    assert cosine == pytest.approx(0, abs=0.03)
 
     def assert_sums_aligned() -> None:
         cell_box = page.locator(".cell-button").first.bounding_box()
@@ -73,8 +97,8 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     page.locator(".layer-chip").first.click()
 
     first_cell = page.locator(".cell-button").first
-    layer_1 = first_cell.locator(".layer-0")
-    layer_4 = first_cell.locator(".layer-3")
+    layer_1 = first_cell.locator(".orb.layer-0")
+    layer_4 = first_cell.locator(".orb.layer-3")
     first_box = layer_1.bounding_box()
     fourth_box = layer_4.bounding_box()
     cell_box = first_cell.bounding_box()
@@ -102,6 +126,7 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     editable_column = editable_position % 4
     row_red_before = int(page.locator(".row-sum").nth(editable_row).locator(".remaining-red").text_content())
     column_red_before = int(page.locator(".column-sum").nth(editable_column).locator(".remaining-red").text_content())
+    stack_red_before = int(editable.locator(".stack-sum .remaining-red").text_content())
     edited_index = int(editable.get_attribute("data-index"))
     edited_x = edited_index % 4
     edited_y = (edited_index % 16) // 4
@@ -109,6 +134,9 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     expect(page.locator(f'.orb.active[data-index="{edited_index}"]')).to_have_class(re.compile(r"\bcoral\b"))
     expect(page.locator(".row-sum").nth(editable_row).locator(".remaining-red")).to_have_text(str(row_red_before - 1))
     expect(page.locator(".column-sum").nth(editable_column).locator(".remaining-red")).to_have_text(str(column_red_before - 1))
+    expect(page.locator(f'.cell-button[data-index="{edited_index}"] .stack-sum .remaining-red')).to_have_text(
+        str(max(0, stack_red_before - 1))
+    )
     editable.click(button="right")
     expect(page.locator(f'.orb.active[data-index="{edited_index}"]')).to_have_class(re.compile(r"\bempty\b"))
     page.locator(f'.cell-button[data-index="{edited_index}"]').click(button="right")

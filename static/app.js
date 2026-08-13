@@ -373,6 +373,18 @@ function render() {
         orb.dataset.slice = slice + 1;
         button.appendChild(orb);
       }
+      const stackIndices = Array.from({ length: SIZE }, (_, slice) => indexForView(column, row, slice));
+      const stackRemaining = remainingColors(stackIndices);
+      const selectedDepth = face.depthOrder.indexOf(currentLayer);
+      const stackSum = document.createElement("span");
+      stackSum.className = `stack-sum layer-${selectedDepth}`;
+      stackSum.innerHTML = sumMarkup(stackRemaining);
+      stackSum.setAttribute("aria-hidden", "true");
+      button.setAttribute(
+        "aria-label",
+        `${button.getAttribute("aria-label")}; stack needs ${stackRemaining.red} red and ${stackRemaining.blue} blue`,
+      );
+      button.appendChild(stackSum);
       button.addEventListener("click", onCellClick);
       button.addEventListener("contextmenu", onCellRightClick);
       cell.appendChild(button);
