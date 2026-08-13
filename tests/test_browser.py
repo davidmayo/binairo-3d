@@ -47,6 +47,58 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     repeated_board = page.locator(".orb").evaluate_all("orbs => orbs.map(orb => orb.className)")
     assert repeated_board == initial_board
 
+    page.locator("#settings-button").click()
+    expect(page.locator("#settings-panel")).to_be_visible()
+    expect(page.locator("#settings-button")).to_have_attribute("aria-expanded", "true")
+    panel_box = page.locator("#settings-panel").bounding_box()
+    assert panel_box and panel_box["x"] == pytest.approx(0, abs=.5)
+    colored_cell = page.locator(".orb.active.coral, .orb.active.blue").first
+    colored_diameter_before = colored_cell.evaluate("orb => getComputedStyle(orb, '::after').width")
+    background_empty = page.locator(".orb.empty:not(.active)").first
+    expect(background_empty).to_have_css("background-color", "rgb(36, 39, 38)")
+    expect(background_empty).to_have_css("opacity", "0.3")
+    page.locator("#highlight-opacity").fill("30")
+    page.locator("#highlight-radius").fill("25")
+    page.locator("#highlight-border").fill("2")
+    configured_orb = page.locator(".orb.active").first
+    expect(configured_orb).to_have_css("background-color", "rgba(36, 39, 38, 0.3)")
+    expect(configured_orb).to_have_css("border-top-width", "2px")
+    configured_orb_box = configured_orb.bounding_box()
+    configured_cell_box = page.locator(".cell-button").first.bounding_box()
+    assert configured_orb_box and configured_cell_box
+    assert configured_orb_box["width"] / configured_cell_box["width"] == pytest.approx(.5, abs=.005)
+    colored_diameter_after = colored_cell.evaluate("orb => getComputedStyle(orb, '::after').width")
+    assert colored_diameter_after == colored_diameter_before
+    page.locator("#background-opacity").fill("45")
+    expect(background_empty).to_have_css("opacity", "0.45")
+    page.locator("#stack-angle").fill("45")
+    page.locator("#stack-spacing").fill("30")
+    stack_near_box = page.locator(".cell-button").first.locator(".orb.layer-0").bounding_box()
+    stack_next_box = page.locator(".cell-button").first.locator(".orb.layer-1").bounding_box()
+    assert stack_near_box and stack_next_box
+    stack_dx = stack_next_box["x"] + stack_next_box["width"] / 2 - stack_near_box["x"] - stack_near_box["width"] / 2
+    stack_dy = stack_next_box["y"] + stack_next_box["height"] / 2 - stack_near_box["y"] - stack_near_box["height"] / 2
+    assert math.degrees(math.atan2(abs(stack_dy), abs(stack_dx))) == pytest.approx(45, abs=.5)
+    assert math.hypot(stack_dx, stack_dy) == pytest.approx(30, abs=.5)
+    page.locator("#red-cell-color").fill("#aa1122")
+    page.locator("#blue-cell-color").fill("#1166cc")
+    page.locator("#empty-cell-color").fill("#556677")
+    expect(page.locator(".orb.coral:not(.active)").first).to_have_css("background-color", "rgb(170, 17, 34)")
+    expect(page.locator(".orb.blue:not(.active)").first).to_have_css("background-color", "rgb(17, 102, 204)")
+    expect(page.locator(".orb.empty:not(.active)").first).to_have_css("background-color", "rgb(85, 102, 119)")
+    expect(page.locator("#red-cell-color-output")).to_have_text("#AA1122")
+    page.locator("#highlight-opacity").fill("15")
+    page.locator("#highlight-radius").fill("20.3")
+    page.locator("#highlight-border").fill("1")
+    page.locator("#background-opacity").fill("30")
+    page.locator("#stack-angle").fill("65")
+    page.locator("#stack-spacing").fill("24")
+    page.locator("#red-cell-color").fill("#f2554a")
+    page.locator("#blue-cell-color").fill("#28c7ce")
+    page.locator("#empty-cell-color").fill("#242726")
+    page.locator("#settings-close").click()
+    expect(page.locator("#settings-panel")).to_be_hidden()
+
     expect(page.locator(".face-button")).to_have_count(6)
     expect(page.locator(".layer-chip")).to_have_text(["1", "2", "3", "4"])
     expect(page.locator(".row-sum")).to_have_count(4)

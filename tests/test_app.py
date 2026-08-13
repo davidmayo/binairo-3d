@@ -13,6 +13,10 @@ def test_homepage_loads_game() -> None:
     assert "4×4×4" not in response.text
     assert "beautifully done" not in client.get("/static/app.js").text
     assert 'id="board"' in response.text
+    assert 'id="settings-panel"' in response.text
+    assert 'id="red-cell-color"' in response.text
+    assert 'id="blue-cell-color"' in response.text
+    assert 'id="empty-cell-color"' in response.text
     assert "Think outside" not in response.text
     assert "<style>" in response.text
     assert ".orb.layer-0" in response.text

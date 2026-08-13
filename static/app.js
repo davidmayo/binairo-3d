@@ -17,6 +17,18 @@ const statusText = document.querySelector("#status-text");
 const progressBar = document.querySelector("#progress-bar");
 const progressText = document.querySelector("#progress-text");
 const toast = document.querySelector("#toast");
+const settingsButton = document.querySelector("#settings-button");
+const settingsPanel = document.querySelector("#settings-panel");
+const settingsClose = document.querySelector("#settings-close");
+const highlightOpacityInput = document.querySelector("#highlight-opacity");
+const highlightRadiusInput = document.querySelector("#highlight-radius");
+const highlightBorderInput = document.querySelector("#highlight-border");
+const backgroundOpacityInput = document.querySelector("#background-opacity");
+const stackAngleInput = document.querySelector("#stack-angle");
+const stackSpacingInput = document.querySelector("#stack-spacing");
+const redCellColorInput = document.querySelector("#red-cell-color");
+const blueCellColorInput = document.querySelector("#blue-cell-color");
+const emptyCellColorInput = document.querySelector("#empty-cell-color");
 
 let solution = [];
 let puzzle = [];
@@ -89,6 +101,49 @@ let random = seededRandom(GENERATOR_SEED);
 
 function resetGenerator() {
   random = seededRandom(GENERATOR_SEED);
+}
+
+function updateVisualSettings() {
+  const opacity = Number(highlightOpacityInput.value);
+  const radius = Number(highlightRadiusInput.value);
+  const border = Number(highlightBorderInput.value);
+  const backgroundOpacity = Number(backgroundOpacityInput.value);
+  const stackAngle = Number(stackAngleInput.value);
+  const stackSpacing = Number(stackSpacingInput.value);
+  const redCellColor = redCellColorInput.value;
+  const blueCellColor = blueCellColorInput.value;
+  const emptyCellColor = emptyCellColorInput.value;
+  document.documentElement.style.setProperty("--highlight-opacity", opacity / 100);
+  document.documentElement.style.setProperty("--highlight-diameter", `${radius * 2}%`);
+  document.documentElement.style.setProperty("--highlight-border", `${border}px`);
+  document.documentElement.style.setProperty("--background-cell-opacity", backgroundOpacity / 100);
+  document.documentElement.style.setProperty("--red", redCellColor);
+  document.documentElement.style.setProperty("--blue", blueCellColor);
+  document.documentElement.style.setProperty("--empty-cell", emptyCellColor);
+  const angle = stackAngle * Math.PI / 180;
+  const stepX = stackSpacing * Math.cos(angle);
+  const stepY = -stackSpacing * Math.sin(angle);
+  for (let depth = 0; depth < SIZE; depth++) {
+    const offset = depth - 1.5;
+    document.documentElement.style.setProperty(`--layer-${depth}-x`, `${offset * stepX}px`);
+    document.documentElement.style.setProperty(`--layer-${depth}-y`, `${offset * stepY}px`);
+  }
+  document.querySelector("#highlight-opacity-output").value = `${opacity}%`;
+  document.querySelector("#highlight-radius-output").value = `${radius}%`;
+  document.querySelector("#highlight-border-output").value = `${border}px`;
+  document.querySelector("#background-opacity-output").value = `${backgroundOpacity}%`;
+  document.querySelector("#stack-angle-output").value = `${stackAngle}°`;
+  document.querySelector("#stack-spacing-output").value = `${stackSpacing}px`;
+  document.querySelector("#red-cell-color-output").value = redCellColor.toUpperCase();
+  document.querySelector("#blue-cell-color-output").value = blueCellColor.toUpperCase();
+  document.querySelector("#empty-cell-color-output").value = emptyCellColor.toUpperCase();
+  alignSumsWithSelectedDepth();
+  alignStackSumsWithHighlights();
+}
+
+function setSettingsOpen(open) {
+  settingsPanel.hidden = !open;
+  settingsButton.setAttribute("aria-expanded", String(open));
 }
 
 function validLine(line, complete = false) {
@@ -328,6 +383,29 @@ function alignSumsWithSelectedDepth() {
   columnSumsEl.style.transform = `translateX(${orbCenterX - cellCenterX}px)`;
 }
 
+function alignStackSumsWithHighlights() {
+  for (const cell of boardEl.querySelectorAll(".cell-button")) {
+    const activeOrb = cell.querySelector(".orb.active");
+    const nearOrb = cell.querySelector(".orb.layer-0");
+    const farOrb = cell.querySelector(".orb.layer-3");
+    const stackSum = cell.querySelector(".stack-sum");
+    if (!activeOrb || !nearOrb || !farOrb || !stackSum) continue;
+    const activeBounds = activeOrb.getBoundingClientRect();
+    const nearBounds = nearOrb.getBoundingClientRect();
+    const farBounds = farOrb.getBoundingClientRect();
+    const sumBounds = stackSum.getBoundingClientRect();
+    const stackX = farBounds.left + farBounds.width / 2 - nearBounds.left - nearBounds.width / 2;
+    const stackY = farBounds.top + farBounds.height / 2 - nearBounds.top - nearBounds.height / 2;
+    const stackLength = Math.hypot(stackX, stackY);
+    const directionX = stackY / stackLength;
+    const directionY = -stackX / stackLength;
+    const labelExtent = Math.abs(directionX) * sumBounds.width / 2
+      + Math.abs(directionY) * sumBounds.height / 2;
+    const distance = activeBounds.width / 2 + labelExtent + 5;
+    stackSum.style.transform = `translate(-50%, -50%) translate(${directionX * distance}px, ${directionY * distance}px)`;
+  }
+}
+
 function render() {
   const conflicts = findConflicts(values);
   const face = FACE_CONFIGS[currentFace];
@@ -394,6 +472,7 @@ function render() {
 
   renderSums();
   alignSumsWithSelectedDepth();
+  alignStackSumsWithHighlights();
 
   layerPickerEl.innerHTML = "";
   for (const slice of face.depthOrder) {
@@ -512,14 +591,13 @@ function rotateVector(quaternion, vector) {
 
 function projectionGeometry() {
   const boardBounds = boardEl.getBoundingClientRect();
-  const buttonWidth = boardEl.querySelector(".cell-button").getBoundingClientRect().width;
   return {
     centerX: boardBounds.left + boardBounds.width / 2,
     centerY: boardBounds.top + boardBounds.height / 2,
     gridX: boardBounds.width / SIZE,
     gridY: boardBounds.height / SIZE,
-    depthX: buttonWidth * .10,
-    depthY: buttonWidth * (-.64 / 3),
+    depthX: Number(stackSpacingInput.value) * Math.cos(Number(stackAngleInput.value) * Math.PI / 180),
+    depthY: -Number(stackSpacingInput.value) * Math.sin(Number(stackAngleInput.value) * Math.PI / 180),
   };
 }
 
@@ -649,6 +727,21 @@ function newGame() {
 document.querySelector("#prev-layer").addEventListener("click", () => moveLayer(-1));
 document.querySelector("#next-layer").addEventListener("click", () => moveLayer(1));
 document.querySelector("#new-button").addEventListener("click", newGame);
+settingsButton.addEventListener("click", () => setSettingsOpen(settingsPanel.hidden));
+settingsClose.addEventListener("click", () => setSettingsOpen(false));
+for (const input of [
+  highlightOpacityInput,
+  highlightRadiusInput,
+  highlightBorderInput,
+  backgroundOpacityInput,
+  stackAngleInput,
+  stackSpacingInput,
+  redCellColorInput,
+  blueCellColorInput,
+  emptyCellColorInput,
+]) {
+  input.addEventListener("input", updateVisualSettings);
+}
 undoButton.addEventListener("click", () => {
   if (isTurning) return;
   const move = history.pop();
@@ -659,6 +752,11 @@ undoButton.addEventListener("click", () => {
 });
 
 document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && !settingsPanel.hidden) {
+    setSettingsOpen(false);
+    settingsButton.focus();
+    return;
+  }
   if (event.key === "ArrowLeft") moveLayer(-1);
   if (event.key === "ArrowRight") moveLayer(1);
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
@@ -671,4 +769,5 @@ resetGenerator();
 solution = generateSolution();
 puzzle = makePuzzle(solution);
 values = [...puzzle];
+updateVisualSettings();
 render();

@@ -14,6 +14,11 @@
         --line: #d9d8d1;
         --red: #f2554a;
         --blue: #28c7ce;
+        --empty-cell: #242726;
+        --highlight-opacity: .15;
+        --highlight-diameter: 40.6%;
+        --highlight-border: 1px;
+        --background-cell-opacity: .3;
       }
 
       * { box-sizing: border-box; }
@@ -48,6 +53,66 @@
       }
       .button.primary { color: white; background: var(--ink); }
       .button:disabled { opacity: .35; cursor: default; }
+      .gear-button { width: 40px; padding: 0; font-size: 18px; }
+
+      .settings-panel {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 20;
+        width: min(360px, calc(100vw - 28px));
+        padding: 24px;
+        overflow-y: auto;
+        border: 0;
+        border-right: 1px solid var(--ink);
+        background: var(--panel);
+        box-shadow: 14px 0 40px rgba(0, 0, 0, .16);
+      }
+      .settings-panel[hidden] { display: none; }
+      .settings-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .settings-header h2 { margin: 0; font-size: 18px; }
+      .settings-close {
+        width: 30px;
+        height: 30px;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        font-size: 22px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .settings-close:hover { background: var(--paper); }
+      .setting { display: grid; gap: 8px; margin-top: 18px; }
+      .setting-label { display: flex; justify-content: space-between; gap: 16px; font-size: 13px; }
+      .setting-label output { color: var(--muted); font-variant-numeric: tabular-nums; }
+      .setting input[type="range"] { width: 100%; accent-color: var(--ink); cursor: pointer; }
+      .color-control {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 10px;
+      }
+      .color-control input[type="color"] {
+        width: 100%;
+        height: 38px;
+        padding: 3px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: white;
+        cursor: pointer;
+      }
+      .color-control output {
+        min-width: 68px;
+        color: var(--muted);
+        font: 12px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+      }
+      .settings-note { margin: -6px 0 4px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 
       .game-card {
         overflow: hidden;
@@ -95,6 +160,8 @@
       .text-button:disabled { opacity: .3; cursor: default; }
 
       .play-area {
+        --cell-size: clamp(78px, 14vw, 104px);
+        --board-cell-diameter: clamp(19.5px, 3.5vw, 26px);
         width: min(700px, 100%);
         margin: 0 auto;
         padding: 42px 18px 18px;
@@ -113,7 +180,7 @@
       .cell { display: grid; place-items: center; min-width: 0; }
       .cell-button {
         position: relative;
-        width: clamp(78px, 14vw, 104px);
+        width: var(--cell-size);
         aspect-ratio: 1;
         padding: 0;
         border: 0;
@@ -132,35 +199,42 @@
         height: 25%;
         border-radius: 50%;
         transform: translate(-50%, -50%);
-        opacity: .3;
+        opacity: var(--background-cell-opacity);
         z-index: 1;
         transition: width .16s, height .16s, transform .16s, opacity .16s, background .16s, border-color .16s, box-shadow .16s;
       }
-      .orb.layer-0, .stack-sum.layer-0 { --stack-x: -15%; --stack-y: 32%; }
-      .orb.layer-1, .stack-sum.layer-1 { --stack-x: -5%; --stack-y: 11%; }
-      .orb.layer-2, .stack-sum.layer-2 { --stack-x: 5%; --stack-y: -11%; }
-      .orb.layer-3, .stack-sum.layer-3 { --stack-x: 15%; --stack-y: -32%; }
+      .orb.layer-0, .stack-sum.layer-0 { --stack-x: var(--layer-0-x); --stack-y: var(--layer-0-y); }
+      .orb.layer-1, .stack-sum.layer-1 { --stack-x: var(--layer-1-x); --stack-y: var(--layer-1-y); }
+      .orb.layer-2, .stack-sum.layer-2 { --stack-x: var(--layer-2-x); --stack-y: var(--layer-2-y); }
+      .orb.layer-3, .stack-sum.layer-3 { --stack-x: var(--layer-3-x); --stack-y: var(--layer-3-y); }
       .orb.active {
-        width: 40.6%;
-        height: 40.6%;
+        width: var(--highlight-diameter);
+        height: var(--highlight-diameter);
         opacity: 1;
         z-index: 5;
-        background: rgba(36, 39, 38, .15);
-        border: 1px solid var(--ink);
+        background: rgb(36 39 38 / var(--highlight-opacity));
+        border: var(--highlight-border) solid var(--ink);
         box-shadow: 0 4px 10px rgba(0, 0, 0, .15);
       }
-      .orb.empty { background: #deddd7; border: 1px solid #cfcec7; }
+      .orb.empty { background: var(--empty-cell); border: 1px solid transparent; }
       .orb.coral { background: var(--red); }
       .orb.blue { background: var(--blue); }
       .orb.active.empty,
       .orb.active.coral,
-      .orb.active.blue { background: rgba(36, 39, 38, .15); border: 1px solid var(--ink); }
+      .orb.active.blue {
+        background: rgb(36 39 38 / var(--highlight-opacity));
+        border: var(--highlight-border) solid var(--ink);
+      }
       .orb.active.coral::after, .orb.active.blue::after {
         content: "";
         position: absolute;
-        inset: 19%;
+        left: 50%;
+        top: 50%;
+        width: var(--board-cell-diameter);
+        height: var(--board-cell-diameter);
         border-radius: 50%;
         opacity: 1;
+        transform: translate(-50%, -50%);
         transition: opacity .16s;
       }
       .orb.active.coral::after { background: var(--red); }
@@ -196,13 +270,13 @@
       .game-card.equalized .orb.blue {
         width: 25%;
         height: 25%;
-        opacity: .6;
+        opacity: var(--background-cell-opacity);
         z-index: 1;
         border: 1px solid transparent;
         outline-color: transparent;
         box-shadow: none;
       }
-      .game-card.equalized .orb.empty { background: #deddd7; border-color: #cfcec7; }
+      .game-card.equalized .orb.empty { background: var(--empty-cell); border-color: transparent; }
       .game-card.equalized .orb.coral { background: var(--red); }
       .game-card.equalized .orb.blue { background: var(--blue); }
       .game-card.equalized .orb::after { opacity: 0; }
@@ -333,11 +407,13 @@
         .button { min-height: 36px; padding: 0 10px; font-size: 13px; }
         .face-controls { grid-template-columns: repeat(3, 1fr); }
         .play-area {
+          --cell-size: min(21vw, 88px);
+          --board-cell-diameter: min(5.25vw, 22px);
           padding-inline: 4px;
           grid-template-columns: 12px minmax(0, 1fr) 48px;
           column-gap: 3px;
         }
-        .cell-button { width: min(21vw, 88px); }
+        .cell-button { width: var(--cell-size); }
         .status-row { grid-template-columns: 1fr auto; }
         .progress-track { display: none; }
       }
@@ -349,9 +425,63 @@
         <h1>3D Binairo</h1>
         <div class="top-actions">
           <button class="button" id="undo-button" disabled>Undo</button>
+          <button class="button gear-button" id="settings-button" aria-label="Visual settings" aria-expanded="false" aria-controls="settings-panel">⚙</button>
           <button class="button primary" id="new-button">New game</button>
         </div>
       </header>
+
+      <section class="settings-panel" id="settings-panel" aria-labelledby="settings-title" hidden>
+        <div class="settings-header">
+          <h2 id="settings-title">Visual settings</h2>
+          <button class="settings-close" id="settings-close" aria-label="Close settings">×</button>
+        </div>
+        <p class="settings-note">These controls affect the gray selected-slice marker. Red and blue board cells keep their normal size and color.</p>
+        <label class="setting">
+          <span class="setting-label"><span>Highlight circle opacity</span><output id="highlight-opacity-output">15%</output></span>
+          <input id="highlight-opacity" type="range" min="0" max="100" step="1" value="15" />
+        </label>
+        <label class="setting">
+          <span class="setting-label"><span>Highlight circle radius</span><output id="highlight-radius-output">20.3%</output></span>
+          <input id="highlight-radius" type="range" min="10" max="35" step="0.1" value="20.3" />
+        </label>
+        <label class="setting">
+          <span class="setting-label"><span>Highlight border thickness</span><output id="highlight-border-output">1px</output></span>
+          <input id="highlight-border" type="range" min="0" max="5" step="0.25" value="1" />
+        </label>
+        <label class="setting">
+          <span class="setting-label"><span>Background cell opacity</span><output id="background-opacity-output">30%</output></span>
+          <input id="background-opacity" type="range" min="0" max="100" step="1" value="30" />
+        </label>
+        <label class="setting">
+          <span class="setting-label"><span>Stack angle</span><output id="stack-angle-output">65°</output></span>
+          <input id="stack-angle" type="range" min="0" max="90" step="1" value="65" />
+        </label>
+        <label class="setting">
+          <span class="setting-label"><span>Stack spacing</span><output id="stack-spacing-output">24px</output></span>
+          <input id="stack-spacing" type="range" min="8" max="40" step="0.5" value="24" />
+        </label>
+        <label class="setting">
+          <span class="setting-label"><span>Red cell</span></span>
+          <span class="color-control">
+            <input id="red-cell-color" type="color" value="#f2554a" />
+            <output id="red-cell-color-output">#F2554A</output>
+          </span>
+        </label>
+        <label class="setting">
+          <span class="setting-label"><span>Blue cell</span></span>
+          <span class="color-control">
+            <input id="blue-cell-color" type="color" value="#28c7ce" />
+            <output id="blue-cell-color-output">#28C7CE</output>
+          </span>
+        </label>
+        <label class="setting">
+          <span class="setting-label"><span>Empty cell</span></span>
+          <span class="color-control">
+            <input id="empty-cell-color" type="color" value="#242726" />
+            <output id="empty-cell-color-output">#242726</output>
+          </span>
+        </label>
+      </section>
 
       <section class="game-card" aria-label="Binairo puzzle">
         <div class="game-header">
@@ -398,6 +528,6 @@
     </main>
 
     <div class="toast" id="toast" role="status"></div>
-    <script src="/static/app.js?v=8"></script>
+    <script src="/static/app.js?v=11"></script>
   </body>
 </html>
