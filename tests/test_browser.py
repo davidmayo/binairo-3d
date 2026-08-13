@@ -81,6 +81,11 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     editable.click()
 
     page.get_by_role("button", name="View Back face").click()
+    expect(page.locator(".game-card")).to_have_class(re.compile(r"\bturning\b"))
+    expect(page.locator(".game-card")).to_have_class(re.compile(r"\bequalized\b"))
+    expect(page.locator(".orb.coral").first).to_have_css("background-color", "rgb(242, 85, 74)")
+    expect(page.locator(".orb.blue").first).to_have_css("background-color", "rgb(40, 199, 206)")
+    page.wait_for_function("document.getAnimations().length > 0")
     expect(page.locator("#face-name")).to_have_text("Back")
     expect(page.locator(".layer-chip")).to_have_text(["4", "3", "2", "1"])
     expect(page.locator(".layer-chip").last).to_have_class(re.compile(r"\bactive\b"))
@@ -88,6 +93,7 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     mirrored_cell = page.locator(".cell-button").nth(edited_y * 4 + (3 - edited_x))
     assert int(mirrored_cell.get_attribute("data-index")) == edited_index
     expect(mirrored_cell.locator(".orb.active")).to_have_class(re.compile(r"\bcoral\b"))
+    expect(page.locator(".game-card")).not_to_have_class(re.compile(r"\bturning\b"))
 
     expected_orders = {
         "Left": ["1", "2", "3", "4"],
@@ -98,3 +104,4 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     for face, order in expected_orders.items():
         page.get_by_role("button", name=f"View {face} face").click()
         expect(page.locator(".layer-chip")).to_have_text(order)
+        expect(page.locator(".game-card")).not_to_have_class(re.compile(r"\bturning\b"))

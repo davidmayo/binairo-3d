@@ -130,7 +130,7 @@
         transform: translate(-50%, -50%);
         opacity: .3;
         z-index: 1;
-        transition: width .15s, height .15s, transform .15s, opacity .15s, background .15s;
+        transition: width .16s, height .16s, transform .16s, opacity .16s, background .16s, border-color .16s, box-shadow .16s;
       }
       .orb.layer-0 { --stack-x: -15%; --stack-y: 32%; }
       .orb.layer-1 { --stack-x: -5%; --stack-y: 11%; }
@@ -156,12 +156,35 @@
         position: absolute;
         inset: 19%;
         border-radius: 50%;
+        opacity: 1;
+        transition: opacity .16s;
       }
       .orb.active.coral::after { background: var(--red); }
       .orb.active.blue::after { background: var(--blue); }
       .orb.active.fixed::after { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .38); }
       .cell-button:hover:not(.fixed) .orb.active { transform: translate(-50%, -50%) scale(1.08); }
       .cell-button.invalid .orb.active { outline: 3px solid var(--red); outline-offset: 3px; }
+      .game-card.turning { cursor: progress; }
+      .game-card.turning .face-controls,
+      .game-card.turning .cell-button,
+      .game-card.turning .layer-controls { pointer-events: none; }
+      .game-card.equalized .orb,
+      .game-card.equalized .orb.active,
+      .game-card.equalized .orb.empty,
+      .game-card.equalized .orb.coral,
+      .game-card.equalized .orb.blue {
+        width: 25%;
+        height: 25%;
+        opacity: .6;
+        z-index: 1;
+        border: 1px solid transparent;
+        outline-color: transparent;
+        box-shadow: none;
+      }
+      .game-card.equalized .orb.empty { background: #deddd7; border-color: #cfcec7; }
+      .game-card.equalized .orb.coral { background: var(--red); }
+      .game-card.equalized .orb.blue { background: var(--blue); }
+      .game-card.equalized .orb::after { opacity: 0; }
 
       .axis-label {
         position: absolute;
@@ -313,6 +336,6 @@
     </main>
 
     <div class="toast" id="toast" role="status"></div>
-    <script src="/static/app.js?v=6"></script>
+    <script src="/static/app.js?v=7"></script>
   </body>
 </html>

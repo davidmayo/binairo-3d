@@ -3,6 +3,7 @@ const CELLS = SIZE ** 3;
 const GENERATOR_SEED = 0x3b1a1044;
 
 const boardEl = document.querySelector("#board");
+const gameCardEl = document.querySelector(".game-card");
 const faceNameEl = document.querySelector("#face-name");
 const facePickerEl = document.querySelector("#face-picker");
 const layerNumberEl = document.querySelector("#layer-number");
@@ -21,6 +22,7 @@ let values = [];
 let currentFace = "front";
 let currentLayer = 0;
 let history = [];
+let isTurning = false;
 let toastTimer;
 
 const indexOf = (x, y, z) => z * 16 + y * 4 + x;
@@ -346,6 +348,7 @@ function render() {
 }
 
 function onCellClick(event) {
+  if (isTurning) return;
   const index = Number(event.currentTarget.dataset.index);
   history.push({ index, previous: values[index] });
   values[index] = values[index] === null ? false : values[index] === false ? true : null;
@@ -358,14 +361,74 @@ function setLayer(layer) {
 }
 
 function moveLayer(offset) {
+  if (isTurning) return;
   const order = FACE_CONFIGS[currentFace].depthOrder;
   const position = order.indexOf(currentLayer);
   setLayer(order[(position + offset + SIZE) % SIZE]);
 }
 
-function setFace(face) {
+function captureOrbCenters() {
+  return new Map(Array.from(boardEl.querySelectorAll(".orb"), orb => {
+    const bounds = orb.getBoundingClientRect();
+    return [orb.dataset.index, {
+      x: bounds.left + bounds.width / 2,
+      y: bounds.top + bounds.height / 2,
+    }];
+  }));
+}
+
+function pause(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+async function setFace(face) {
+  if (face === currentFace || isTurning) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    currentFace = face;
+    render();
+    return;
+  }
+
+  isTurning = true;
+  gameCardEl.classList.add("turning", "equalized");
+  gameCardEl.setAttribute("aria-busy", "true");
+
+  // First let the selected and unselected markers become visually equivalent.
+  await pause(170);
+  const oldCenters = captureOrbCenters();
+
+  // Render the target projection, then place every physical marker back at
+  // its old screen position so the browser can animate it into the new one.
   currentFace = face;
   render();
+  const animations = Array.from(boardEl.querySelectorAll(".orb"), orb => {
+    const oldCenter = oldCenters.get(orb.dataset.index);
+    const bounds = orb.getBoundingClientRect();
+    const newCenter = {
+      x: bounds.left + bounds.width / 2,
+      y: bounds.top + bounds.height / 2,
+    };
+    const deltaX = oldCenter.x - newCenter.x;
+    const deltaY = oldCenter.y - newCenter.y;
+    return orb.animate([
+      { transform: `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))` },
+      { transform: "translate(-50%, -50%)" },
+    ], {
+      duration: 430,
+      easing: "cubic-bezier(.45, 0, .2, 1)",
+      fill: "both",
+    });
+  });
+
+  await Promise.all(animations.map(animation => animation.finished.catch(() => undefined)));
+  animations.forEach(animation => animation.cancel());
+
+  // Restore colors and selected-slice emphasis once the turn has landed.
+  gameCardEl.classList.remove("equalized");
+  await pause(170);
+  gameCardEl.classList.remove("turning");
+  gameCardEl.removeAttribute("aria-busy");
+  isTurning = false;
 }
 
 function showToast(message) {
@@ -376,6 +439,7 @@ function showToast(message) {
 }
 
 function newGame() {
+  if (isTurning) return;
   const button = document.querySelector("#new-button");
   button.disabled = true;
   button.textContent = "Building…";
@@ -398,6 +462,7 @@ document.querySelector("#prev-layer").addEventListener("click", () => moveLayer(
 document.querySelector("#next-layer").addEventListener("click", () => moveLayer(1));
 document.querySelector("#new-button").addEventListener("click", newGame);
 undoButton.addEventListener("click", () => {
+  if (isTurning) return;
   const move = history.pop();
   if (!move) return;
   values[move.index] = move.previous;
