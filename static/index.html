@@ -2,102 +2,293 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f3efe7" />
-    <title>Binairo³ — A binary puzzle in three dimensions</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f4ef" />
+    <title>3D Binairo</title>
+    <style>
+      :root {
+        --ink: #242726;
+        --muted: #6e7370;
+        --paper: #f5f4ef;
+        --panel: #fffefa;
+        --line: #d9d8d1;
+        --red: #f2554a;
+        --blue: #28c7ce;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--paper);
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      button { color: inherit; font: inherit; }
+
+      main {
+        width: min(760px, calc(100% - 28px));
+        margin: 28px auto 60px;
+      }
+      .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+      h1 { margin: 0; font-size: 24px; letter-spacing: -.04em; }
+      h1 sup { color: var(--red); }
+      .top-actions { display: flex; gap: 8px; }
+      .button {
+        min-height: 40px;
+        padding: 0 14px;
+        border: 1px solid var(--ink);
+        border-radius: 6px;
+        background: transparent;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .button.primary { color: white; background: var(--ink); }
+      .button:disabled { opacity: .35; cursor: default; }
+
+      .game-card {
+        overflow: hidden;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      .game-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .game-header h2 { margin: 0; font-size: 18px; }
+      .game-header small { color: var(--muted); font-weight: 500; }
+      .text-button {
+        border: 0;
+        background: transparent;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .text-button:disabled { opacity: .3; cursor: default; }
+
+      .play-area {
+        width: min(620px, 100%);
+        margin: 0 auto;
+        padding: 42px 24px 25px;
+        position: relative;
+      }
+      .board {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        aspect-ratio: 1.25;
+      }
+      .cell { display: grid; place-items: center; min-width: 0; }
+      .cell-button {
+        position: relative;
+        width: clamp(78px, 14vw, 104px);
+        aspect-ratio: 1;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        cursor: pointer;
+      }
+      .cell-button.fixed { cursor: default; }
+      .cell-button:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
+
+      .orb {
+        position: absolute;
+        left: calc(50% + var(--stack-x));
+        top: calc(50% + var(--stack-y));
+        width: 25%;
+        height: 25%;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        opacity: .3;
+        z-index: 1;
+        transition: width .15s, height .15s, transform .15s, opacity .15s, background .15s;
+      }
+      .orb.layer-0 { --stack-x: -30%; --stack-y: 30%; }
+      .orb.layer-1 { --stack-x: -10%; --stack-y: 10%; }
+      .orb.layer-2 { --stack-x: 10%; --stack-y: -10%; }
+      .orb.layer-3 { --stack-x: 30%; --stack-y: -30%; }
+      .orb.active {
+        width: 58%;
+        height: 58%;
+        opacity: 1;
+        z-index: 5;
+        background: var(--ink);
+        border: 0;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, .15);
+      }
+      .orb.empty { background: #deddd7; border: 1px solid #cfcec7; }
+      .orb.coral { background: var(--red); }
+      .orb.blue { background: var(--blue); }
+      .orb.active.empty { background: var(--ink); border: 0; }
+      .orb.active.coral, .orb.active.blue { background: var(--ink); }
+      .orb.active.coral::after, .orb.active.blue::after {
+        content: "";
+        position: absolute;
+        inset: 19%;
+        border-radius: 50%;
+      }
+      .orb.active.coral::after { background: var(--red); }
+      .orb.active.blue::after { background: var(--blue); }
+      .orb.active.fixed::after { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .38); }
+      .cell-button:hover:not(.fixed) .orb.active { transform: translate(-50%, -50%) scale(1.08); }
+      .cell-button.invalid .orb.active { outline: 3px solid var(--red); outline-offset: 3px; }
+
+      .axis-label {
+        position: absolute;
+        color: var(--muted);
+        font: 700 10px/1 monospace;
+      }
+      .axis-y { left: 15px; top: 50%; }
+      .axis-x { left: 50%; bottom: 15px; }
+
+      .layer-controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 16px;
+        padding: 8px 20px 28px;
+      }
+      .arrow-button, .layer-chip {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background: white;
+        cursor: pointer;
+      }
+      .layer-picker { display: flex; gap: 7px; }
+      .layer-chip { color: var(--muted); font-size: 13px; font-weight: 700; }
+      .layer-chip.active { color: white; border-color: var(--ink); background: var(--ink); }
+
+      .status-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 20px;
+        border-top: 1px solid var(--line);
+        font-size: 13px;
+      }
+      .status-copy { display: flex; align-items: center; gap: 8px; }
+      .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #96b62d; }
+      .progress-track { height: 3px; background: var(--line); }
+      .progress-track span { display: block; width: 0; height: 100%; background: var(--ink); transition: width .2s; }
+
+      .legend {
+        display: flex;
+        justify-content: center;
+        gap: 22px;
+        margin-top: 16px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .legend span { display: flex; align-items: center; gap: 7px; }
+      .swatch { width: 13px; height: 13px; border-radius: 50%; }
+      .swatch.red { background: var(--red); }
+      .swatch.blue { background: var(--blue); }
+
+      details {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      summary { color: var(--ink); font-weight: 700; cursor: pointer; }
+      details ul { margin-bottom: 0; padding-left: 20px; }
+
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 20px;
+        z-index: 10;
+        padding: 10px 14px;
+        color: white;
+        background: var(--ink);
+        border-radius: 6px;
+        transform: translate(-50%, 140%);
+        transition: transform .2s;
+        font-size: 13px;
+      }
+      .toast.show { transform: translate(-50%, 0); }
+
+      @media (max-width: 540px) {
+        main { margin-top: 16px; }
+        .top { align-items: flex-start; }
+        .top-actions { flex-direction: column-reverse; }
+        .button { min-height: 36px; padding: 0 10px; font-size: 13px; }
+        .play-area { padding-inline: 10px; }
+        .cell-button { width: min(21vw, 88px); }
+        .status-row { grid-template-columns: 1fr auto; }
+        .progress-track { display: none; }
+      }
+    </style>
   </head>
   <body>
-    <div class="page-shell">
-      <header class="topbar">
-        <a class="brand" href="#" aria-label="Binairo cubed home">
-          <span>BINAIRO</span><sup>3</sup>
-        </a>
-        <button class="icon-button" id="help-button" aria-label="How to play" title="How to play">
-          <span>?</span>
-        </button>
+    <main>
+      <header class="top">
+        <h1>3D Binairo <sup>4×4×4</sup></h1>
+        <div class="top-actions">
+          <button class="button" id="undo-button" disabled>Undo</button>
+          <button class="button primary" id="new-button">New game</button>
+        </div>
       </header>
 
-      <main>
-        <section class="intro" aria-labelledby="page-title">
-          <div class="eyebrow"><span></span> THREE DIMENSIONS. TWO COLORS.</div>
-          <h1 id="page-title">Think outside<br />the <em>square.</em></h1>
-          <p>Every row, column, and depth line follows the classic Binairo rules. Complete all four layers to solve the cube.</p>
-        </section>
+      <section class="game-card" aria-label="Binairo puzzle">
+        <div class="game-header">
+          <h2>Layer <span id="layer-number">1</span> <small>of 4</small></h2>
+          <small>Click: red → blue → empty</small>
+        </div>
 
-        <section class="game-card" aria-label="Binairo puzzle">
-          <div class="game-header">
-            <div>
-              <span class="section-label">CURRENT VIEW</span>
-              <h2>Layer <span id="layer-number">1</span> <small>of 4</small></h2>
-            </div>
-            <div class="game-actions">
-              <button class="text-button" id="undo-button" disabled>
-                <span aria-hidden="true">↶</span> Undo
-              </button>
-              <button class="primary-button" id="new-button">
-                New cube <span aria-hidden="true">↗</span>
-              </button>
-            </div>
-          </div>
+        <div class="play-area">
+          <div class="axis-label axis-y">Y</div>
+          <div class="axis-label axis-x">X</div>
+          <div class="board" id="board" role="grid" aria-label="Layer 1 of the puzzle"></div>
+        </div>
 
-          <div class="play-area">
-            <div class="axis-label axis-y">Y</div>
-            <div class="axis-label axis-x">X</div>
-            <div class="board" id="board" role="grid" aria-label="Layer 1 of the puzzle"></div>
-          </div>
+        <div class="layer-controls">
+          <button class="arrow-button" id="prev-layer" aria-label="Previous layer">←</button>
+          <div class="layer-picker" id="layer-picker" aria-label="Select a layer"></div>
+          <button class="arrow-button" id="next-layer" aria-label="Next layer">→</button>
+        </div>
 
-          <div class="layer-controls">
-            <button class="arrow-button" id="prev-layer" aria-label="Previous layer">←</button>
-            <div class="layer-picker" id="layer-picker" aria-label="Select a layer"></div>
-            <button class="arrow-button" id="next-layer" aria-label="Next layer">→</button>
-          </div>
+        <div class="status-row" aria-live="polite">
+          <div class="status-copy"><span class="status-dot"></span><span id="status-text">Cube in progress</span></div>
+          <div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div>
+          <strong id="progress-text">0 / 64</strong>
+        </div>
+      </section>
 
-          <div class="status-row" aria-live="polite">
-            <div class="status-copy">
-              <span class="status-dot"></span>
-              <span id="status-text">Cube in progress</span>
-            </div>
-            <div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div>
-            <strong id="progress-text">0 / 64</strong>
-          </div>
-        </section>
+      <div class="legend">
+        <span><i class="swatch red"></i> Red</span>
+        <span><i class="swatch blue"></i> Blue</span>
+      </div>
 
-        <section class="rules" aria-labelledby="rules-title">
-          <div class="rules-heading">
-            <span class="section-label">THE RULES</span>
-            <h2 id="rules-title">Every slice must work.</h2>
-          </div>
-          <div class="rule-list">
-            <article>
-              <span class="rule-number">01</span>
-              <div><h3>Balance the colors</h3><p>Every line contains exactly two coral and two blue circles.</p></div>
-            </article>
-            <article>
-              <span class="rule-number">02</span>
-              <div><h3>No triples</h3><p>Never place more than two circles of the same color next to each other.</p></div>
-            </article>
-            <article>
-              <span class="rule-number">03</span>
-              <div><h3>Keep lines unique</h3><p>No two rows or columns in any 2D slice may be identical.</p></div>
-            </article>
-          </div>
-        </section>
-      </main>
-
-      <footer><span>BINAIRO<sup>3</sup></span><p>A tiny puzzle for spatial thinkers.</p></footer>
-    </div>
-
-    <dialog id="help-dialog">
-      <button class="dialog-close" id="close-help" aria-label="Close">×</button>
-      <span class="section-label">HOW TO PLAY</span>
-      <h2>One cube. Twelve puzzles.</h2>
-      <p>Click an empty circle to make it coral, click again for blue, and once more to clear it. Use the layer controls to move through the cube.</p>
-      <p>Each horizontal, vertical, and depth-facing 4×4 slice must be a valid Binairo grid. Conflicting circles are marked as soon as a rule is broken.</p>
-      <button class="primary-button" id="start-playing">Start playing</button>
-    </dialog>
+      <details>
+        <summary>Rules</summary>
+        <ul>
+          <li>Every line has two red and two blue circles.</li>
+          <li>No line contains three adjacent circles of the same color.</li>
+          <li>No two rows or columns in any 2D slice are identical.</li>
+        </ul>
+      </details>
+    </main>
 
     <div class="toast" id="toast" role="status"></div>
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=3"></script>
   </body>
 </html>

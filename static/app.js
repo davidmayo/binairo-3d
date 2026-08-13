@@ -225,12 +225,11 @@ function render() {
       button.disabled = fixed;
       button.setAttribute("aria-label", `${fixed ? "Given" : "Cell"}, row ${y + 1}, column ${x + 1}: ${valueClass(values[activeIndex])}`);
 
-      for (let offset = 3; offset >= 0; offset--) {
-        const z = (currentLayer + offset) % SIZE;
+      for (let z = 0; z < SIZE; z++) {
         const orb = document.createElement("span");
         const value = get(values, x, y, z);
         const isFixed = puzzle[indexOf(x, y, z)] !== null;
-        orb.className = `orb ${offset === 0 ? "active" : `depth-${offset}`} ${valueClass(value)}${isFixed ? " fixed" : ""}`;
+        orb.className = `orb layer-${z}${z === currentLayer ? " active" : ""} ${valueClass(value)}${isFixed ? " fixed" : ""}`;
         button.appendChild(orb);
       }
       button.addEventListener("click", onCellClick);
@@ -297,7 +296,7 @@ function newGame() {
     history = [];
     currentLayer = 0;
     button.disabled = false;
-    button.innerHTML = 'New cube <span aria-hidden="true">↗</span>';
+    button.textContent = "New game";
     render();
     showToast("A fresh cube is ready.");
   }, 20));
@@ -322,11 +321,6 @@ document.addEventListener("keydown", event => {
     undoButton.click();
   }
 });
-
-const helpDialog = document.querySelector("#help-dialog");
-document.querySelector("#help-button").addEventListener("click", () => helpDialog.showModal());
-document.querySelector("#close-help").addEventListener("click", () => helpDialog.close());
-document.querySelector("#start-playing").addEventListener("click", () => helpDialog.close());
 
 solution = generateSolution();
 puzzle = makePuzzle(solution);

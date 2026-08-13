@@ -9,12 +9,16 @@ client = TestClient(app)
 def test_homepage_loads_game() -> None:
     response = client.get("/")
     assert response.status_code == 200
-    assert "BINAIRO" in response.text
+    assert "3D Binairo" in response.text
     assert 'id="board"' in response.text
+    assert "Think outside" not in response.text
+    assert "<style>" in response.text
+    assert ".orb.layer-0" in response.text
+    assert ".orb.layer-3" in response.text
+    assert response.headers["cache-control"] == "no-store"
 
 
 def test_static_assets_are_served() -> None:
-    assert client.get("/static/styles.css").status_code == 200
     script = client.get("/static/app.js")
     assert script.status_code == 200
     assert "generateSolution" in script.text
