@@ -337,8 +337,59 @@ def test_size_selector_builds_six_cube(page: Page, live_server: str) -> None:
     six_card_box = page.locator(".game-card").bounding_box()
     six_cell_box = page.locator(".cell-button").first.bounding_box()
     assert four_card_box and four_cell_box and six_card_box and six_cell_box
-    assert six_card_box["width"] >= four_card_box["width"] * 1.4
-    assert six_cell_box["width"] == pytest.approx(four_cell_box["width"], abs=1)
+    assert six_card_box["width"] == pytest.approx(four_card_box["width"], abs=1)
+    assert six_cell_box["width"] == pytest.approx(four_cell_box["width"] * .6, abs=1)
+    bounds = page.evaluate("""() => {
+      const card = document.querySelector('.game-card').getBoundingClientRect();
+      const bottomOrbs = Array.from(document.querySelectorAll('.cell-button'))
+        .slice(30)
+        .flatMap(cell => Array.from(cell.querySelectorAll('.orb')))
+        .map(orb => orb.getBoundingClientRect());
+      const columnCounts = Array.from(document.querySelectorAll('.column-sum'))
+        .map(count => count.getBoundingClientRect());
+      const visibleGameMarks = Array.from(document.querySelectorAll('.orb, .row-sum, .column-sum, .stack-sum'))
+        .filter(mark => !mark.hidden)
+        .map(mark => mark.getBoundingClientRect());
+      return {
+        cardRight: card.right,
+        marksRight: Math.max(...visibleGameMarks.map(mark => mark.right)),
+        bottomOrbsBottom: Math.max(...bottomOrbs.map(orb => orb.bottom)),
+        columnCountsTop: Math.min(...columnCounts.map(count => count.top)),
+      };
+    }""")
+    assert bounds["marksRight"] <= bounds["cardRight"] - 8
+    assert bounds["columnCountsTop"] >= bounds["bottomOrbsBottom"] + 12
+
+    page.evaluate("cubeMovesInput.checked = true; updateVisualSettings()")
+    expect(page.locator(".game-card")).to_have_class(re.compile(r"\bcube-moves\b"))
+    page.wait_for_timeout(250)
+    top_clearance = page.evaluate("""() => {
+      const playArea = document.querySelector('.play-area').getBoundingClientRect();
+      const board = document.querySelector('.board').getBoundingClientRect();
+      const orbs = Array.from(document.querySelectorAll('.orb')).map(orb => orb.getBoundingClientRect());
+      const highlights = Array.from(document.querySelectorAll('.orb.active')).map(orb => {
+        const bounds = orb.getBoundingClientRect();
+        return [bounds.x + bounds.width / 2 - board.x, bounds.y + bounds.height / 2 - board.y];
+      });
+      return { playTop: playArea.top, orbTop: Math.min(...orbs.map(orb => orb.top)), highlights };
+    }""")
+    assert top_clearance["orbTop"] >= top_clearance["playTop"]
+
+    page.locator(".layer-chip").last.click()
+    page.wait_for_timeout(250)
+    bottom_clearance = page.evaluate("""() => {
+      const playArea = document.querySelector('.play-area').getBoundingClientRect();
+      const board = document.querySelector('.board').getBoundingClientRect();
+      const orbs = Array.from(document.querySelectorAll('.orb')).map(orb => orb.getBoundingClientRect());
+      const highlights = Array.from(document.querySelectorAll('.orb.active')).map(orb => {
+        const bounds = orb.getBoundingClientRect();
+        return [bounds.x + bounds.width / 2 - board.x, bounds.y + bounds.height / 2 - board.y];
+      });
+      return { playBottom: playArea.bottom, orbBottom: Math.max(...orbs.map(orb => orb.bottom)), highlights };
+    }""")
+    assert bottom_clearance["orbBottom"] <= bottom_clearance["playBottom"]
+    for before, after in zip(top_clearance["highlights"], bottom_clearance["highlights"], strict=True):
+        assert after == pytest.approx(before, abs=.5)
 
     page.locator("#size-select").select_option("4")
     page.wait_for_function("!document.querySelector('#new-button').disabled")

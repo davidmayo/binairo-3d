@@ -154,13 +154,18 @@ function updateVisualSettings() {
   alignStackSumsWithHighlights();
 }
 
+function boardVisualScale() {
+  return SIZE === 6 ? .6 : 1;
+}
+
 function updateStackPositions() {
   const stackAngle = Number(stackAngleInput.value);
-  const stackSpacing = Number(stackSpacingInput.value);
+  const stackSpacing = Number(stackSpacingInput.value) * boardVisualScale();
   const angle = stackAngle * Math.PI / 180;
   const stepX = stackSpacing * Math.cos(angle);
   const stepY = -stackSpacing * Math.sin(angle);
   const selectedDepth = depthOrder().indexOf(currentLayer);
+  gameCardEl.classList.toggle("cube-moves", cubeMovesInput.checked);
   for (let depth = 0; depth < SIZE; depth++) {
     const offset = cubeMovesInput.checked ? depth - selectedDepth : depth - (SIZE - 1) / 2;
     document.documentElement.style.setProperty(`--layer-${depth}-x`, `${offset * stepX}px`);
@@ -658,13 +663,14 @@ function rotateVector(quaternion, vector) {
 
 function projectionGeometry() {
   const boardBounds = boardEl.getBoundingClientRect();
+  const scaledSpacing = Number(stackSpacingInput.value) * boardVisualScale();
   return {
     centerX: boardBounds.left + boardBounds.width / 2,
     centerY: boardBounds.top + boardBounds.height / 2,
     gridX: boardBounds.width / SIZE,
     gridY: boardBounds.height / SIZE,
-    depthX: Number(stackSpacingInput.value) * Math.cos(Number(stackAngleInput.value) * Math.PI / 180),
-    depthY: -Number(stackSpacingInput.value) * Math.sin(Number(stackAngleInput.value) * Math.PI / 180),
+    depthX: scaledSpacing * Math.cos(Number(stackAngleInput.value) * Math.PI / 180),
+    depthY: -scaledSpacing * Math.sin(Number(stackAngleInput.value) * Math.PI / 180),
   };
 }
 
