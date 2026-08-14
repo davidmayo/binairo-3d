@@ -38,6 +38,8 @@
         margin: 28px auto 60px;
       }
       :root[data-size="6"] { --visual-scale: .6; }
+      :root[data-size="8"] { --visual-scale: .428571; }
+      :root[data-size="10"] { --visual-scale: .333333; }
       .top {
         display: flex;
         align-items: center;
@@ -272,11 +274,21 @@
         --cell-size: 10.5cqw;
         --board-cell-diameter: 2.625cqw;
       }
-      :root[data-size="6"] .board { margin-bottom: max(22px, calc(22px * var(--visual-scale))); }
-      :root[data-size="6"] .game-card.cube-moves .play-area {
+      :root[data-size="8"] .play-area {
+        --cell-size: 7.5cqw;
+        --board-cell-diameter: 1.875cqw;
+      }
+      :root[data-size="10"] .play-area {
+        --cell-size: 5.833333cqw;
+        --board-cell-diameter: 1.458333cqw;
+      }
+      :root:is([data-size="6"], [data-size="8"], [data-size="10"]) .board {
+        margin-bottom: max(22px, calc(22px * var(--visual-scale)));
+      }
+      :root:is([data-size="6"], [data-size="8"], [data-size="10"]) .game-card.cube-moves .play-area {
         padding-top: max(42px, calc(64px * var(--visual-scale)));
       }
-      :root[data-size="6"] .game-card.cube-moves .board {
+      :root:is([data-size="6"], [data-size="8"], [data-size="10"]) .game-card.cube-moves .board {
         margin-bottom: max(42px, calc(64px * var(--visual-scale)));
       }
 
@@ -444,7 +456,7 @@
         background: white;
         cursor: pointer;
       }
-      .layer-picker { display: flex; gap: 7px; }
+      .layer-picker { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }
       .layer-chip {
         position: relative;
         isolation: isolate;
@@ -628,6 +640,8 @@
             <select id="size-select" aria-label="Puzzle size">
               <option value="4" selected>4×4×4</option>
               <option value="6">6×6×6</option>
+              <option value="8">8×8×8</option>
+              <option value="10">10×10×10</option>
             </select>
           </label>
           <button class="button primary" id="new-button">New game</button>
@@ -755,6 +769,6 @@
     </main>
 
     <div class="toast" id="toast" role="status" hidden></div>
-    <script src="/static/app.js?v=24"></script>
+    <script src="/static/app.js?v=25"></script>
   </body>
 </html>

@@ -451,6 +451,24 @@ def test_size_selector_builds_six_cube(page: Page, live_server: str) -> None:
     }""")
     assert min(doubled_fit["horizontalGap"], doubled_fit["verticalGap"]) <= 2
 
+    page.set_viewport_size({"width": 1280, "height": 720})
+    page.wait_for_function("!document.querySelector('main').dataset.fitting")
+    for size, half_word in [(8, "four"), (10, "five")]:
+        page.locator("#size-select").select_option(str(size))
+        page.wait_for_function("!document.querySelector('#new-button').disabled")
+        page.wait_for_function("!document.querySelector('main').dataset.fitting")
+        expect(page.locator(".cell-button")).to_have_count(size**2)
+        expect(page.locator(".orb")).to_have_count(size**3)
+        expect(page.locator(".layer-chip")).to_have_count(size)
+        expect(page.locator("#layer-count")).to_have_text(str(size))
+        expect(page.locator("#half-count")).to_have_text(half_word)
+        assert page.evaluate("allPlanesValid(solution, true)") is True
+        assert page.locator(".orb").evaluate_all(
+            "orbs => orbs.every(orb => { const bounds = orb.getBoundingClientRect(); "
+            "const region = document.querySelector('#game-board-region').getBoundingClientRect(); "
+            "return bounds.left >= region.left && bounds.right <= region.right; })"
+        )
+
     page.locator("#size-select").select_option("4")
     page.wait_for_function("!document.querySelector('#new-button').disabled")
     page.wait_for_function("!document.querySelector('main').dataset.fitting")

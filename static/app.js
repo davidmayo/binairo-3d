@@ -157,7 +157,7 @@ function updateVisualSettings() {
 
 function boardVisualScale() {
   const cell = boardEl.querySelector(".cell-button");
-  return cell ? cell.getBoundingClientRect().width / 104 : SIZE === 6 ? .6 : 1;
+  return cell ? cell.getBoundingClientRect().width / 104 : SIZE === 4 ? 1 : 3 / (SIZE - 1);
 }
 
 let fitRun = 0;
@@ -323,6 +323,8 @@ function generateSolution() {
 
   const patterns = {
     6: [true, true, false, true, false, false],
+    8: [true, true, false, true, false, false, true, false],
+    10: [true, true, false, true, false, false, true, false, true, false],
   };
   const pattern = patterns[SIZE];
   if (!pattern) throw new Error(`Unsupported cube size: ${SIZE}`);
@@ -379,9 +381,15 @@ function countSolutions(start, limit = 2) {
 }
 
 function makePuzzle(full) {
+  if (SIZE >= 8) {
+    return full.map((value, index) => {
+      const { x, y, z } = coordinatesForIndex(index);
+      return z === (x + y) % SIZE ? null : value;
+    });
+  }
   const clues = [...full];
   const order = shuffle(Array.from({ length: CELLS }, (_, i) => i));
-  const targetClues = SIZE === 4 ? 22 + Math.floor(random() * 4) : 108;
+  const targetClues = SIZE === 4 ? 22 + Math.floor(random() * 4) : Math.ceil(CELLS / 2);
   for (const index of order) {
     if (clues.filter(v => v !== null).length <= targetClues) break;
     const saved = clues[index];
@@ -857,7 +865,7 @@ function configureSize(size) {
   document.documentElement.style.setProperty("--grid-size", SIZE);
   document.documentElement.dataset.size = String(SIZE);
   layerCountEl.textContent = SIZE;
-  const halfWord = SIZE / 2 === 2 ? "two" : "three";
+  const halfWord = { 2: "two", 3: "three", 4: "four", 5: "five" }[SIZE / 2];
   document.querySelector("#half-count").textContent = halfWord;
   document.querySelector("#half-count-blue").textContent = halfWord;
 }

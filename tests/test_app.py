@@ -23,6 +23,8 @@ def test_homepage_loads_game() -> None:
     assert 'id="size-select"' in response.text
     assert "4×4×4" in response.text
     assert "6×6×6" in response.text
+    assert "8×8×8" in response.text
+    assert "10×10×10" in response.text
     assert 'id="axis-x"' not in response.text
     assert 'id="axis-y"' not in response.text
     assert "Think outside" not in response.text

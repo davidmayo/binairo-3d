@@ -7,7 +7,7 @@ const source = app.split("const boardEl")[0]
 
 eval(`${source}
   const started = performance.now();
-  for (const size of [4, 6]) {
+  for (const size of [4, 6, 8, 10]) {
     SIZE = size;
     CELLS = SIZE ** 3;
     resetGenerator();
