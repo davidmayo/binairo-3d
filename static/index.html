@@ -34,7 +34,7 @@
       button { color: inherit; font: inherit; }
 
       main {
-        width: min(760px, calc(100% - 28px));
+        width: calc(100% - 32px);
         margin: 28px auto 60px;
       }
       :root[data-size="6"] { --visual-scale: .6; }
@@ -235,9 +235,9 @@
       .text-button:disabled { opacity: .3; cursor: default; }
 
       .play-area {
-        --cell-size: clamp(78px, 14vw, 104px);
-        --board-cell-diameter: clamp(19.5px, 3.5vw, 26px);
-        width: min(700px, 100%);
+        --cell-size: 17.5cqw;
+        --board-cell-diameter: 4.375cqw;
+        width: 100%;
         margin: 0 auto;
         padding: 42px 18px 18px;
         display: grid;
@@ -251,6 +251,7 @@
         display: grid;
         grid-template-columns: repeat(var(--grid-size), 1fr);
         aspect-ratio: 1.25;
+        container-type: inline-size;
       }
       .cell { display: grid; place-items: center; min-width: 0; }
       .cell-button {
@@ -268,12 +269,15 @@
       .orb.fixed { cursor: default !important; }
       .cell-button:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
       :root[data-size="6"] .play-area {
-        --cell-size: clamp(46.8px, 8.4vw, 62.4px);
-        --board-cell-diameter: clamp(11.7px, 2.1vw, 15.6px);
+        --cell-size: 10.5cqw;
+        --board-cell-diameter: 2.625cqw;
       }
-      :root[data-size="6"] .board { margin-bottom: 22px; }
+      :root[data-size="6"] .board { margin-bottom: max(22px, calc(22px * var(--visual-scale))); }
+      :root[data-size="6"] .game-card.cube-moves .play-area {
+        padding-top: max(42px, calc(64px * var(--visual-scale)));
+      }
       :root[data-size="6"] .game-card.cube-moves .board {
-        margin-bottom: 42px;
+        margin-bottom: max(42px, calc(64px * var(--visual-scale)));
       }
 
       .orb {
@@ -375,12 +379,6 @@
       .game-card.equalized .orb.blue { background: var(--blue); }
       .game-card.equalized .orb::after { opacity: 0; }
       .game-card.turning .stack-sum { opacity: 0; }
-
-      .axis-label {
-        color: var(--muted);
-        font: 700 calc(10px * var(--visual-scale))/1 monospace;
-      }
-      .axis-y { grid-column: 1; grid-row: 1; align-self: center; }
 
       .row-sums {
         grid-column: 3;
@@ -525,6 +523,78 @@
         font-size: 13px;
       }
       .toast.show { transform: translate(-50%, 0); }
+      .toast[hidden] { display: none; }
+
+      @media (min-width: 900px) and (min-aspect-ratio: 4 / 3) {
+        main {
+          --sidebar-width: 340px;
+          display: grid;
+          grid-template-columns: var(--fitted-board-width, 700px) var(--sidebar-width);
+          grid-template-rows: auto auto auto auto auto 1fr;
+          align-items: start;
+          gap: 12px 16px;
+          min-height: calc(100vh - 8px);
+          margin: 8px auto 0;
+        }
+        .top {
+          grid-column: 2;
+          grid-row: 1;
+          align-items: flex-start;
+          margin: 0;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .top-actions { flex-wrap: wrap; }
+        .game-card { display: contents; }
+        .game-board-region {
+          grid-column: 1;
+          grid-row: 1 / span 6;
+          width: var(--fitted-board-width, 700px);
+          overflow: hidden;
+          align-self: start;
+          position: sticky;
+          top: 8px;
+          border: 1px solid var(--line);
+          border-radius: 10px;
+          background: var(--panel);
+        }
+        .game-header {
+          grid-column: 2;
+          grid-row: 2;
+          display: grid;
+          gap: 8px;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          background: var(--panel);
+        }
+        .face-controls {
+          grid-column: 2;
+          grid-row: 3;
+          grid-template-columns: repeat(2, 1fr);
+          border: 1px solid var(--line);
+          border-radius: 8px;
+        }
+        .legend {
+          grid-column: 2;
+          grid-row: 5;
+          justify-content: flex-start;
+          margin: 0;
+          padding: 8px 4px;
+        }
+        details {
+          grid-column: 2;
+          grid-row: 6;
+          align-self: start;
+          margin: 0;
+        }
+        .status-row {
+          grid-column: 2;
+          grid-row: 4;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          background: var(--panel);
+        }
+      }
 
       @media (max-width: 540px) {
         main { margin-top: 16px; }
@@ -533,15 +603,9 @@
         .button { min-height: 36px; padding: 0 10px; font-size: 13px; }
         .face-controls { grid-template-columns: repeat(3, 1fr); }
         .play-area {
-          --cell-size: min(21vw, 88px);
-          --board-cell-diameter: min(5.25vw, 22px);
           padding-inline: 4px;
           grid-template-columns: 12px minmax(0, 1fr) 48px;
           column-gap: 3px;
-        }
-        :root[data-size="6"] .play-area {
-          --cell-size: min(12.6vw, 52.8px);
-          --board-cell-diameter: min(3.15vw, 13.2px);
         }
         .cell-button { width: min(var(--cell-size), 88%); }
         .layer-controls { gap: 6px; padding-inline: 4px; }
@@ -655,19 +719,19 @@
 
         <div class="face-controls" id="face-picker" aria-label="Choose a cube face"></div>
 
-        <div class="play-area">
-          <div class="axis-label axis-y" id="axis-y">Y</div>
-          <div class="board" id="board" role="grid" aria-label="Layer 1 of the puzzle"></div>
-          <div class="row-sums" id="row-sums" aria-label="Remaining colors by row"></div>
-          <div class="column-sums" id="column-sums" aria-label="Remaining colors by column"></div>
-        </div>
+        <div class="game-board-region" id="game-board-region">
+          <div class="play-area">
+            <div class="board" id="board" role="grid" aria-label="Layer 1 of the puzzle"></div>
+            <div class="row-sums" id="row-sums" aria-label="Remaining colors by row"></div>
+            <div class="column-sums" id="column-sums" aria-label="Remaining colors by column"></div>
+          </div>
 
-        <div class="layer-controls">
-          <button class="arrow-button" id="prev-layer" aria-label="Previous layer">←</button>
-          <div class="layer-picker" id="layer-picker" aria-label="Select a layer"></div>
-          <button class="arrow-button" id="next-layer" aria-label="Next layer">→</button>
+          <div class="layer-controls">
+            <button class="arrow-button" id="prev-layer" aria-label="Previous layer">←</button>
+            <div class="layer-picker" id="layer-picker" aria-label="Select a layer"></div>
+            <button class="arrow-button" id="next-layer" aria-label="Next layer">→</button>
+          </div>
         </div>
-
         <div class="status-row" aria-live="polite">
           <div class="status-copy"><span class="status-dot"></span><span id="status-text">Cube in progress</span></div>
           <div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div>
@@ -690,7 +754,7 @@
       </details>
     </main>
 
-    <div class="toast" id="toast" role="status"></div>
-    <script src="/static/app.js?v=20"></script>
+    <div class="toast" id="toast" role="status" hidden></div>
+    <script src="/static/app.js?v=24"></script>
   </body>
 </html>

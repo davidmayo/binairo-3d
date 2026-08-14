@@ -39,11 +39,16 @@ def live_server() -> str:
 
 def test_game_in_firefox(page: Page, live_server: str) -> None:
     page.goto(live_server)
+    page.wait_for_function("!document.querySelector('main').dataset.fitting")
     expect(page.locator(".cell-button")).to_have_count(16)
+    expect(page.locator("#toast")).to_be_hidden()
 
     initial_board = page.locator(".orb").evaluate_all("orbs => orbs.map(orb => orb.className)")
     page.locator("#new-button").click()
     page.wait_for_function("!document.querySelector('#new-button').disabled")
+    page.wait_for_function("!document.querySelector('main').dataset.fitting")
+    expect(page.locator("#toast")).to_be_visible()
+    expect(page.locator("#toast")).to_be_hidden(timeout=4000)
     repeated_board = page.locator(".orb").evaluate_all("orbs => orbs.map(orb => orb.className)")
     assert repeated_board == initial_board
 
@@ -72,7 +77,9 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     page.locator("#highlight-border").fill("2")
     configured_orb = page.locator(".orb.active").first
     expect(configured_orb).to_have_css("background-color", "rgba(36, 39, 38, 0.3)")
-    expect(configured_orb).to_have_css("border-top-width", "2px")
+    visual_scale = page.evaluate("boardVisualScale()")
+    configured_border = configured_orb.evaluate("orb => parseFloat(getComputedStyle(orb).borderTopWidth)")
+    assert configured_border == max(1, math.floor(2 * visual_scale))
     configured_orb_box = configured_orb.bounding_box()
     configured_cell_box = page.locator(".cell-button").first.bounding_box()
     assert configured_orb_box and configured_cell_box
@@ -90,7 +97,7 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     stack_dx = stack_next_box["x"] + stack_next_box["width"] / 2 - stack_near_box["x"] - stack_near_box["width"] / 2
     stack_dy = stack_next_box["y"] + stack_next_box["height"] / 2 - stack_near_box["y"] - stack_near_box["height"] / 2
     assert math.degrees(math.atan2(abs(stack_dy), abs(stack_dx))) == pytest.approx(45, abs=.5)
-    assert math.hypot(stack_dx, stack_dy) == pytest.approx(30, abs=.5)
+    assert math.hypot(stack_dx, stack_dy) == pytest.approx(30 * visual_scale, abs=.75)
     page.locator("#red-cell-color").fill("#aa1122")
     page.locator("#blue-cell-color").fill("#1166cc")
     page.locator("#empty-cell-color").fill("#556677")
@@ -114,6 +121,7 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     page.locator("#complete-color").fill("#65d97b")
     expect(page.locator("#cube-moves")).not_to_be_checked()
     page.locator("#cube-moves").check()
+    page.wait_for_function("!document.querySelector('main').dataset.fitting")
     stationary_before = page.locator(".cell-button").first.locator(".orb.active").bounding_box()
     stationary_cell_before = page.locator(".cell-button").first.bounding_box()
     page.locator(".layer-chip").nth(1).click()
@@ -132,9 +140,10 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     )
     assert not page.locator(".orb").evaluate_all("orbs => orbs.some(orb => orb.getAnimations().length > 0)")
     page.locator("#cube-moves").uncheck()
-    page.locator(".layer-chip").first.click()
+    page.wait_for_function("!document.querySelector('main').dataset.fitting")
     page.locator("#settings-close").click()
     expect(page.locator("#settings-panel")).to_be_hidden()
+    page.locator(".layer-chip").first.click()
 
     background_orb = page.locator(".orb:not(.active):not(.fixed)").first
     background_index = background_orb.get_attribute("data-index")
@@ -175,11 +184,17 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     expect(page.locator(".column-sum")).to_have_count(4)
     expect(page.locator(".stack-sum")).to_have_count(16)
     expect(page.locator(".remaining-check")).not_to_have_count(0)
-    expect(page.locator(".remaining-check").first).to_have_css("font-size", "22px")
+    assert page.locator(".remaining-check").first.evaluate(
+        "mark => parseFloat(getComputedStyle(mark).fontSize)"
+    ) == pytest.approx(22 * visual_scale, abs=.1)
     expect(page.locator(".remaining-check").first).to_have_css("font-weight", "900")
-    expect(page.locator(".row-sum").first).to_have_css("font-size", "16px")
+    assert page.locator(".row-sum").first.evaluate(
+        "mark => parseFloat(getComputedStyle(mark).fontSize)"
+    ) == pytest.approx(16 * visual_scale, abs=.1)
     expect(page.locator(".row-sum").first).to_have_css("font-weight", "600")
-    expect(page.locator(".stack-sum").first).to_have_css("font-size", "15px")
+    assert page.locator(".stack-sum").first.evaluate(
+        "mark => parseFloat(getComputedStyle(mark).fontSize)"
+    ) == pytest.approx(15 * visual_scale, abs=.1)
 
     first_active_box = page.locator(".cell-button").first.locator(".orb.active").bounding_box()
     first_far_box = page.locator(".cell-button").first.locator(".orb.layer-3").bounding_box()
@@ -319,11 +334,13 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
 
 def test_size_selector_builds_six_cube(page: Page, live_server: str) -> None:
     page.goto(live_server)
+    page.wait_for_function("!document.querySelector('main').dataset.fitting")
     expect(page.locator("#size-select")).to_have_value("4")
-    four_card_box = page.locator(".game-card").bounding_box()
+    four_board_box = page.locator(".board").bounding_box()
     four_cell_box = page.locator(".cell-button").first.bounding_box()
     page.locator("#size-select").select_option("6")
     page.wait_for_function("!document.querySelector('#new-button').disabled")
+    page.wait_for_function("!document.querySelector('main').dataset.fitting")
 
     expect(page.locator(".cell-button")).to_have_count(36)
     expect(page.locator(".orb")).to_have_count(216)
@@ -334,13 +351,41 @@ def test_size_selector_builds_six_cube(page: Page, live_server: str) -> None:
     expect(page.locator("#progress-text")).to_contain_text("/ 216")
     expect(page.locator("#half-count")).to_have_text("three")
     assert page.evaluate("allPlanesValid(solution, true)") is True
-    six_card_box = page.locator(".game-card").bounding_box()
+    six_board_box = page.locator(".board").bounding_box()
     six_cell_box = page.locator(".cell-button").first.bounding_box()
-    assert four_card_box and four_cell_box and six_card_box and six_cell_box
-    assert six_card_box["width"] == pytest.approx(four_card_box["width"], abs=1)
-    assert six_cell_box["width"] == pytest.approx(four_cell_box["width"] * .6, abs=1)
+    assert four_board_box and four_cell_box and six_board_box and six_cell_box
+    expected_cell_ratio = .6 * six_board_box["width"] / four_board_box["width"]
+    assert six_cell_box["width"] / four_cell_box["width"] == pytest.approx(expected_cell_ratio, abs=.01)
+    viewport_fit = page.evaluate("""() => {
+      const region = document.querySelector('#game-board-region').getBoundingClientRect();
+      const sidebar = document.querySelector('main').dataset.layout === 'sidebar';
+      return {
+        horizontalGap: Math.abs(region.width - (innerWidth - 32 - (sidebar ? 356 : 0))),
+        verticalGap: Math.abs(region.height - (innerHeight - 16)),
+      };
+    }""")
+    assert min(viewport_fit["horizontalGap"], viewport_fit["verticalGap"]) <= 2
+    page.evaluate("""() => {
+      const rules = document.querySelector('details');
+      rules.open = true;
+      rules.style.minHeight = '1200px';
+    }""")
+    board_top_before_scroll = page.locator("#game-board-region").bounding_box()["y"]
+    sidebar_top_before_scroll = page.locator(".top").bounding_box()["y"]
+    page.evaluate("scrollTo(0, 300)")
+    page.wait_for_timeout(100)
+    board_top_after_scroll = page.locator("#game-board-region").bounding_box()["y"]
+    sidebar_top_after_scroll = page.locator(".top").bounding_box()["y"]
+    assert board_top_after_scroll == pytest.approx(board_top_before_scroll, abs=.5)
+    assert sidebar_top_after_scroll < sidebar_top_before_scroll - 250
+    page.evaluate("""() => {
+      scrollTo(0, 0);
+      const rules = document.querySelector('details');
+      rules.open = false;
+      rules.style.minHeight = '';
+    }""")
     bounds = page.evaluate("""() => {
-      const card = document.querySelector('.game-card').getBoundingClientRect();
+      const region = document.querySelector('#game-board-region').getBoundingClientRect();
       const bottomOrbs = Array.from(document.querySelectorAll('.cell-button'))
         .slice(30)
         .flatMap(cell => Array.from(cell.querySelectorAll('.orb')))
@@ -351,13 +396,13 @@ def test_size_selector_builds_six_cube(page: Page, live_server: str) -> None:
         .filter(mark => !mark.hidden)
         .map(mark => mark.getBoundingClientRect());
       return {
-        cardRight: card.right,
+        regionRight: region.right,
         marksRight: Math.max(...visibleGameMarks.map(mark => mark.right)),
         bottomOrbsBottom: Math.max(...bottomOrbs.map(orb => orb.bottom)),
         columnCountsTop: Math.min(...columnCounts.map(count => count.top)),
       };
     }""")
-    assert bounds["marksRight"] <= bounds["cardRight"] - 8
+    assert bounds["marksRight"] <= bounds["regionRight"] - 8
     assert bounds["columnCountsTop"] >= bounds["bottomOrbsBottom"] + 12
 
     page.evaluate("cubeMovesInput.checked = true; updateVisualSettings()")
@@ -391,7 +436,23 @@ def test_size_selector_builds_six_cube(page: Page, live_server: str) -> None:
     for before, after in zip(top_clearance["highlights"], bottom_clearance["highlights"], strict=True):
         assert after == pytest.approx(before, abs=.5)
 
+    original_region_width = page.locator("#game-board-region").bounding_box()["width"]
+    page.set_viewport_size({"width": 2560, "height": 1440})
+    page.wait_for_function("!document.querySelector('main').dataset.fitting")
+    doubled_region_width = page.locator("#game-board-region").bounding_box()["width"]
+    assert doubled_region_width >= original_region_width * 1.9
+    doubled_fit = page.evaluate("""() => {
+      const region = document.querySelector('#game-board-region').getBoundingClientRect();
+      const sidebar = document.querySelector('main').dataset.layout === 'sidebar';
+      return {
+        horizontalGap: Math.abs(region.width - (innerWidth - 32 - (sidebar ? 356 : 0))),
+        verticalGap: Math.abs(region.height - (innerHeight - 16)),
+      };
+    }""")
+    assert min(doubled_fit["horizontalGap"], doubled_fit["verticalGap"]) <= 2
+
     page.locator("#size-select").select_option("4")
     page.wait_for_function("!document.querySelector('#new-button').disabled")
+    page.wait_for_function("!document.querySelector('main').dataset.fitting")
     expect(page.locator(".cell-button")).to_have_count(16)
     expect(page.locator(".layer-chip")).to_have_count(4)

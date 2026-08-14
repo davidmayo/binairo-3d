@@ -24,6 +24,7 @@ def test_homepage_loads_game() -> None:
     assert "4×4×4" in response.text
     assert "6×6×6" in response.text
     assert 'id="axis-x"' not in response.text
+    assert 'id="axis-y"' not in response.text
     assert "Think outside" not in response.text
     assert "<style>" in response.text
     assert ".orb.layer-0" in response.text

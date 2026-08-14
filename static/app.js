@@ -3,7 +3,9 @@ let CELLS = SIZE ** 3;
 const GENERATOR_SEED = 0x3b1a1044;
 
 const boardEl = document.querySelector("#board");
+const mainEl = document.querySelector("main");
 const gameCardEl = document.querySelector(".game-card");
+const gameBoardRegionEl = document.querySelector("#game-board-region");
 const faceNameEl = document.querySelector("#face-name");
 const slicePlaneEl = document.querySelector("#slice-plane");
 const facePickerEl = document.querySelector("#face-picker");
@@ -11,7 +13,6 @@ const layerNumberEl = document.querySelector("#layer-number");
 const layerCountEl = document.querySelector("#layer-count");
 const layerPickerEl = document.querySelector("#layer-picker");
 const sizeSelectEl = document.querySelector("#size-select");
-const axisYEl = document.querySelector("#axis-y");
 const rowSumsEl = document.querySelector("#row-sums");
 const columnSumsEl = document.querySelector("#column-sums");
 const undoButton = document.querySelector("#undo-button");
@@ -155,7 +156,47 @@ function updateVisualSettings() {
 }
 
 function boardVisualScale() {
-  return SIZE === 6 ? .6 : 1;
+  const cell = boardEl.querySelector(".cell-button");
+  return cell ? cell.getBoundingClientRect().width / 104 : SIZE === 6 ? .6 : 1;
+}
+
+let fitRun = 0;
+
+function fitGameToViewport() {
+  const run = ++fitRun;
+  mainEl.dataset.fitting = "true";
+  const sidebarLayout = window.matchMedia("(min-width: 900px) and (min-aspect-ratio: 4 / 3)").matches;
+  const sidebarSpace = sidebarLayout ? 356 : 0;
+  const horizontalLimit = Math.max(280, window.innerWidth - 32 - sidebarSpace);
+  mainEl.dataset.layout = sidebarLayout ? "sidebar" : "stacked";
+  mainEl.style.setProperty("--fitted-board-width", `${horizontalLimit}px`);
+  mainEl.style.width = `${horizontalLimit + sidebarSpace}px`;
+  gameBoardRegionEl.style.width = sidebarLayout ? `${horizontalLimit}px` : "100%";
+  let iteration = 0;
+
+  function refine() {
+    if (run !== fitRun) return;
+    updateStackPositions();
+    const regionBounds = gameBoardRegionEl.getBoundingClientRect();
+    const availableHeight = Math.max(180, window.innerHeight - 16);
+    const currentWidth = regionBounds.width;
+    const heightLimitedWidth = currentWidth * availableHeight / regionBounds.height;
+    const targetWidth = Math.max(280, Math.min(horizontalLimit, heightLimitedWidth));
+    iteration++;
+    if (Math.abs(targetWidth - currentWidth) > 1 && iteration < 6) {
+      mainEl.style.setProperty("--fitted-board-width", `${targetWidth}px`);
+      mainEl.style.width = `${targetWidth + sidebarSpace}px`;
+      gameBoardRegionEl.style.width = sidebarLayout ? `${targetWidth}px` : "100%";
+      requestAnimationFrame(refine);
+      return;
+    }
+    mainEl.style.setProperty("--fitted-board-width", `${targetWidth}px`);
+    mainEl.style.width = `${targetWidth + sidebarSpace}px`;
+    gameBoardRegionEl.style.width = sidebarLayout ? `${targetWidth}px` : "100%";
+    delete mainEl.dataset.fitting;
+  }
+
+  requestAnimationFrame(refine);
 }
 
 function updateStackPositions() {
@@ -165,6 +206,7 @@ function updateStackPositions() {
   const stepX = stackSpacing * Math.cos(angle);
   const stepY = -stackSpacing * Math.sin(angle);
   const selectedDepth = depthOrder().indexOf(currentLayer);
+  document.documentElement.style.setProperty("--visual-scale", boardVisualScale());
   gameCardEl.classList.toggle("cube-moves", cubeMovesInput.checked);
   for (let depth = 0; depth < SIZE; depth++) {
     const offset = cubeMovesInput.checked ? depth - selectedDepth : depth - (SIZE - 1) / 2;
@@ -474,7 +516,6 @@ function render() {
   slicePlaneEl.textContent = face.plane;
   layerNumberEl.textContent = currentLayer + 1;
   layerCountEl.textContent = SIZE;
-  axisYEl.textContent = face.verticalAxis;
   gameCardEl.classList.toggle("allow-background-clicks", allowBackgroundClicksInput.checked);
 
   facePickerEl.innerHTML = "";
@@ -537,6 +578,7 @@ function render() {
     }
   }
 
+  updateStackPositions();
   renderSums();
   alignSumsWithSelectedDepth();
   alignStackSumsWithHighlights();
@@ -794,10 +836,19 @@ function startWinAnimation() {
 }
 
 function showToast(message) {
-  toast.textContent = message;
-  toast.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove("show"), 2800);
+  toast.hidden = false;
+  toast.textContent = message;
+  requestAnimationFrame(() => toast.classList.add("show"));
+  toastTimer = setTimeout(() => {
+    toast.classList.remove("show");
+    toastTimer = setTimeout(() => {
+      if (!toast.classList.contains("show")) {
+        toast.hidden = true;
+        toast.textContent = "";
+      }
+    }, 220);
+  }, 2800);
 }
 
 function configureSize(size) {
@@ -835,6 +886,7 @@ function newGame() {
     button.disabled = false;
     button.textContent = "New game";
     render();
+    fitGameToViewport();
     showToast("A fresh cube is ready.");
   }, 20));
 }
@@ -859,9 +911,18 @@ for (const input of [
 ]) {
   input.addEventListener("input", updateVisualSettings);
 }
-cubeMovesInput.addEventListener("change", updateVisualSettings);
+cubeMovesInput.addEventListener("change", () => {
+  updateVisualSettings();
+  fitGameToViewport();
+});
 showRemainingCountsInput.addEventListener("change", render);
 allowBackgroundClicksInput.addEventListener("change", render);
+new ResizeObserver(() => {
+  updateStackPositions();
+  alignSumsWithSelectedDepth();
+  alignStackSumsWithHighlights();
+}).observe(boardEl);
+window.addEventListener("resize", fitGameToViewport);
 boardEl.addEventListener("click", event => handleBoardPointer(event, 1));
 document.querySelector(".play-area").addEventListener("contextmenu", event => {
   event.preventDefault();
@@ -897,3 +958,4 @@ puzzle = makePuzzle(solution);
 values = [...puzzle];
 updateVisualSettings();
 render();
+fitGameToViewport();
