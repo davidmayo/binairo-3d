@@ -18,6 +18,7 @@ def test_homepage_loads_game() -> None:
     assert 'id="blue-cell-color"' in response.text
     assert 'id="empty-cell-color"' in response.text
     assert 'id="show-remaining-counts"' in response.text
+    assert 'id="show-stack-counts"' in response.text
     assert 'id="complete-color"' in response.text
     assert 'id="allow-background-clicks"' in response.text
     assert 'id="size-select"' in response.text

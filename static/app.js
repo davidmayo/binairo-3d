@@ -35,6 +35,7 @@ const emptyCellColorInput = document.querySelector("#empty-cell-color");
 const completeColorInput = document.querySelector("#complete-color");
 const cubeMovesInput = document.querySelector("#cube-moves");
 const showRemainingCountsInput = document.querySelector("#show-remaining-counts");
+const showStackCountsInput = document.querySelector("#show-stack-counts");
 const allowBackgroundClicksInput = document.querySelector("#allow-background-clicks");
 
 let solution = [];
@@ -573,7 +574,7 @@ function render() {
       stackSum.style.setProperty("--stack-x", `var(--layer-${selectedDepth}-x)`);
       stackSum.style.setProperty("--stack-y", `var(--layer-${selectedDepth}-y)`);
       stackSum.classList.add("remaining-counts");
-      stackSum.hidden = !showRemainingCountsInput.checked;
+      stackSum.hidden = !showStackCountsInput.checked;
       stackSum.innerHTML = sumMarkup(stackRemaining);
       stackSum.setAttribute("aria-hidden", "true");
       button.setAttribute(
@@ -924,6 +925,7 @@ cubeMovesInput.addEventListener("change", () => {
   fitGameToViewport();
 });
 showRemainingCountsInput.addEventListener("change", render);
+showStackCountsInput.addEventListener("change", render);
 allowBackgroundClicksInput.addEventListener("change", render);
 new ResizeObserver(() => {
   updateStackPositions();
