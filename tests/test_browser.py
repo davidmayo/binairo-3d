@@ -175,6 +175,8 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     expect(page.locator(".column-sum")).to_have_count(4)
     expect(page.locator(".stack-sum")).to_have_count(16)
     expect(page.locator(".remaining-check")).not_to_have_count(0)
+    expect(page.locator(".remaining-check").first).to_have_css("font-size", "22px")
+    expect(page.locator(".remaining-check").first).to_have_css("font-weight", "900")
     expect(page.locator(".row-sum").first).to_have_css("font-size", "16px")
     expect(page.locator(".row-sum").first).to_have_css("font-weight", "600")
     expect(page.locator(".stack-sum").first).to_have_css("font-size", "15px")
@@ -300,3 +302,16 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
         page.get_by_role("button", name=f"View {face}").click()
         expect(page.locator(".layer-chip")).to_have_text(order)
         expect(page.locator(".game-card")).not_to_have_class(re.compile(r"\bturning\b"))
+
+    page.evaluate("values = [...solution]; render()")
+    expect(page.locator("#status-text")).to_have_text("Cube complete")
+    page.wait_for_function("celebrationActive && isTurning")
+    page.wait_for_function(
+        "Array.from(document.querySelectorAll('.orb')).some(orb => "
+        "orb.getAnimations().some(animation => animation.effect.getKeyframes().length > 20))"
+    )
+    win_duration = page.locator(".orb").evaluate_all(
+        "orbs => Math.max(...orbs.flatMap(orb => orb.getAnimations().map(animation => animation.effect.getTiming().duration)))"
+    )
+    assert win_duration >= 1290
+    page.evaluate("stopWinAnimation()")

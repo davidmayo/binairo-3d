@@ -41,6 +41,8 @@ let currentFace = "front";
 let currentLayer = 0;
 let history = [];
 let isTurning = false;
+let celebrationActive = false;
+let celebrationRun = 0;
 let toastTimer;
 
 const indexOf = (x, y, z) => z * 16 + y * 4 + x;
@@ -522,7 +524,10 @@ function render() {
   if (filled === CELLS && conflicts.size === 0 && values.every((v, i) => v === solution[i])) {
     statusText.textContent = "Cube complete";
     document.querySelector(".status-dot").style.background = "var(--blue)";
-    showToast("Cube solved! Every slice is valid.");
+    if (!celebrationActive) {
+      showToast("Cube solved! Every slice is valid.");
+      startWinAnimation();
+    }
   } else if (conflicts.size) {
     statusText.textContent = `${conflicts.size} conflicting circle${conflicts.size === 1 ? "" : "s"}`;
     document.querySelector(".status-dot").style.background = "var(--coral)";
@@ -534,7 +539,7 @@ function render() {
 
 function handleBoardPointer(event, direction) {
   const orb = event.target.closest(".orb");
-  if (!orb || isTurning || orb.dataset.fixed === "true") return;
+  if (!orb || isTurning || celebrationActive || orb.dataset.fixed === "true") return;
   if (!orb.classList.contains("active") && !allowBackgroundClicksInput.checked) return;
   cycleCell(Number(orb.dataset.index), direction);
 }
@@ -665,8 +670,9 @@ function pause(milliseconds) {
   return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
-async function setFace(face) {
-  if (face === currentFace || isTurning) return;
+async function setFace(face, options = {}) {
+  const { durationScale = 1, celebration = false } = options;
+  if (face === currentFace || isTurning || (celebrationActive && !celebration)) return;
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     currentFace = face;
     render();
@@ -680,7 +686,7 @@ async function setFace(face) {
   gameCardEl.setAttribute("aria-busy", "true");
 
   // First let the selected and unselected markers become visually equivalent.
-  await pause(170);
+  await pause(170 * durationScale);
   const oldCenters = captureOrbCenters();
 
   // Render the target projection, then place every physical marker back at
@@ -689,7 +695,7 @@ async function setFace(face) {
   render();
   const geometry = projectionGeometry();
   const turnAngle = 2 * Math.acos(Math.min(1, Math.abs(quaternionDot(startOrientation, endOrientation))));
-  const duration = turnAngle > Math.PI * .75 ? 520 : 430;
+  const duration = (turnAngle > Math.PI * .75 ? 520 : 430) * durationScale;
   const animations = Array.from(boardEl.querySelectorAll(".orb"), orb => {
     const oldCenter = oldCenters.get(orb.dataset.index);
     const bounds = orb.getBoundingClientRect();
@@ -717,10 +723,32 @@ async function setFace(face) {
 
   // Restore colors and selected-slice emphasis once the turn has landed.
   gameCardEl.classList.remove("equalized");
-  await pause(170);
+  await pause(170 * durationScale);
   gameCardEl.classList.remove("turning");
   gameCardEl.removeAttribute("aria-busy");
   isTurning = false;
+}
+
+function stopWinAnimation() {
+  celebrationActive = false;
+  celebrationRun++;
+}
+
+function startWinAnimation() {
+  if (celebrationActive || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  celebrationActive = true;
+  const run = ++celebrationRun;
+  const faces = Object.keys(FACE_CONFIGS);
+
+  (async () => {
+    while (celebrationActive && run === celebrationRun) {
+      const cycle = shuffle(faces).filter(face => face !== currentFace);
+      for (const face of cycle) {
+        if (!celebrationActive || run !== celebrationRun) return;
+        await setFace(face, { durationScale: 3, celebration: true });
+      }
+    }
+  })();
 }
 
 function showToast(message) {
@@ -731,7 +759,11 @@ function showToast(message) {
 }
 
 function newGame() {
-  if (isTurning) return;
+  if (isTurning && !celebrationActive) return;
+  stopWinAnimation();
+  isTurning = false;
+  gameCardEl.classList.remove("turning", "equalized");
+  gameCardEl.removeAttribute("aria-busy");
   const button = document.querySelector("#new-button");
   button.disabled = true;
   button.textContent = "Building…";
