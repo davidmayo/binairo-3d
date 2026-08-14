@@ -18,6 +18,7 @@ def test_homepage_loads_game() -> None:
     assert 'id="blue-cell-color"' in response.text
     assert 'id="empty-cell-color"' in response.text
     assert 'id="show-remaining-counts"' in response.text
+    assert 'id="complete-color"' in response.text
     assert "Think outside" not in response.text
     assert "<style>" in response.text
     assert ".orb.layer-0" in response.text

@@ -93,11 +93,14 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     page.locator("#red-cell-color").fill("#aa1122")
     page.locator("#blue-cell-color").fill("#1166cc")
     page.locator("#empty-cell-color").fill("#556677")
+    page.locator("#complete-color").fill("#44ee66")
     expect(page.locator(".orb.coral:not(.active)").first).to_have_css("background-color", "rgb(170, 17, 34)")
     expect(page.locator(".orb.blue:not(.active)").first).to_have_css("background-color", "rgb(17, 102, 204)")
     expect(page.locator(".orb.empty:not(.active)").first).to_have_css("background-color", "rgb(85, 102, 119)")
     assert highlighted_empty.evaluate("orb => getComputedStyle(orb, '::after').backgroundColor") == "rgb(85, 102, 119)"
     expect(page.locator("#red-cell-color-output")).to_have_text("#AA1122")
+    expect(page.locator("#complete-color-output")).to_have_text("#44EE66")
+    expect(page.locator(".remaining-check").first).to_have_css("color", "rgb(68, 238, 102)")
     page.locator("#highlight-opacity").fill("0")
     page.locator("#highlight-radius").fill("20.3")
     page.locator("#highlight-border").fill("1")
@@ -107,6 +110,7 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     page.locator("#red-cell-color").fill("#f2554a")
     page.locator("#blue-cell-color").fill("#28c7ce")
     page.locator("#empty-cell-color").fill("#c0c0c0")
+    page.locator("#complete-color").fill("#65d97b")
     expect(page.locator("#cube-moves")).not_to_be_checked()
     page.locator("#cube-moves").check()
     stationary_before = page.locator(".cell-button").first.locator(".orb.active").bounding_box()
@@ -134,10 +138,13 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     expect(page.locator(".face-button")).to_have_count(6)
     expect(page.locator(".layer-chip")).to_have_text(["XY 1", "XY 2", "XY 3", "XY 4"])
     first_progress = page.locator(".layer-chip").first.evaluate(
-        "chip => ({ progress: chip.style.getPropertyValue('--slice-progress'), border: getComputedStyle(chip).borderTopWidth })"
+        "chip => ({ progress: chip.style.getPropertyValue('--slice-progress'), border: getComputedStyle(chip).borderTopWidth, "
+        "width: getComputedStyle(chip).width, radius: getComputedStyle(chip).borderRadius })"
     )
     assert first_progress["progress"].endswith("%")
     assert first_progress["border"] == "3px"
+    assert first_progress["width"] == "72px"
+    assert first_progress["radius"] == "999px"
     assert page.locator(".layer-chip").nth(1).evaluate("chip => getComputedStyle(chip).borderTopWidth") == "1px"
     expect(page.locator(".row-sum")).to_have_count(4)
     expect(page.locator(".column-sum")).to_have_count(4)

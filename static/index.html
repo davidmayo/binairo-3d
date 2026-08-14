@@ -15,8 +15,7 @@
         --red: #f2554a;
         --blue: #28c7ce;
         --empty-cell: #c0c0c0;
-        --complete: #5d9168;
-        --complete-soft: #dcebdd;
+        --complete: #65d97b;
         --highlight-opacity: 0;
         --highlight-diameter: 40.6%;
         --highlight-border: 1px;
@@ -407,7 +406,8 @@
       .layer-chip {
         position: relative;
         isolation: isolate;
-        width: 58px;
+        width: 72px;
+        border-radius: 999px;
         overflow: hidden;
         color: var(--ink);
         border: 1px solid var(--ink);
@@ -424,8 +424,8 @@
         transition: height .18s, background .18s;
       }
       .layer-chip.active { border-width: 3px; }
-      .layer-chip.complete { border-color: var(--ink); background: var(--complete-soft); }
-      .layer-chip.complete::before { background: var(--complete-soft); }
+      .layer-chip.complete { border-color: var(--ink); background: var(--complete); }
+      .layer-chip.complete::before { background: var(--complete); }
 
       .status-row {
         display: grid;
@@ -576,6 +576,13 @@
             <output id="empty-cell-color-output">#C0C0C0</output>
           </span>
         </label>
+        <label class="setting">
+          <span class="setting-label"><span>Complete</span></span>
+          <span class="color-control">
+            <input id="complete-color" type="color" value="#65d97b" />
+            <output id="complete-color-output">#65D97B</output>
+          </span>
+        </label>
       </section>
 
       <section class="game-card" aria-label="Binairo puzzle">
@@ -623,6 +630,6 @@
     </main>
 
     <div class="toast" id="toast" role="status"></div>
-    <script src="/static/app.js?v=14"></script>
+    <script src="/static/app.js?v=15"></script>
   </body>
 </html>

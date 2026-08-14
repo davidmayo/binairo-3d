@@ -30,6 +30,7 @@ const stackSpacingInput = document.querySelector("#stack-spacing");
 const redCellColorInput = document.querySelector("#red-cell-color");
 const blueCellColorInput = document.querySelector("#blue-cell-color");
 const emptyCellColorInput = document.querySelector("#empty-cell-color");
+const completeColorInput = document.querySelector("#complete-color");
 const cubeMovesInput = document.querySelector("#cube-moves");
 const showRemainingCountsInput = document.querySelector("#show-remaining-counts");
 
@@ -116,6 +117,7 @@ function updateVisualSettings() {
   const redCellColor = redCellColorInput.value;
   const blueCellColor = blueCellColorInput.value;
   const emptyCellColor = emptyCellColorInput.value;
+  const completeColor = completeColorInput.value;
   document.documentElement.style.setProperty("--highlight-opacity", opacity / 100);
   document.documentElement.style.setProperty("--highlight-diameter", `${radius * 2}%`);
   document.documentElement.style.setProperty("--highlight-border", `${border}px`);
@@ -123,6 +125,7 @@ function updateVisualSettings() {
   document.documentElement.style.setProperty("--red", redCellColor);
   document.documentElement.style.setProperty("--blue", blueCellColor);
   document.documentElement.style.setProperty("--empty-cell", emptyCellColor);
+  document.documentElement.style.setProperty("--complete", completeColor);
   updateStackPositions();
   document.querySelector("#highlight-opacity-output").value = `${opacity}%`;
   document.querySelector("#highlight-radius-output").value = `${radius}%`;
@@ -133,6 +136,7 @@ function updateVisualSettings() {
   document.querySelector("#red-cell-color-output").value = redCellColor.toUpperCase();
   document.querySelector("#blue-cell-color-output").value = blueCellColor.toUpperCase();
   document.querySelector("#empty-cell-color-output").value = emptyCellColor.toUpperCase();
+  document.querySelector("#complete-color-output").value = completeColor.toUpperCase();
   alignSumsWithSelectedDepth();
   alignStackSumsWithHighlights();
 }
@@ -768,6 +772,7 @@ for (const input of [
   redCellColorInput,
   blueCellColorInput,
   emptyCellColorInput,
+  completeColorInput,
 ]) {
   input.addEventListener("input", updateVisualSettings);
 }
