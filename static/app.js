@@ -9,7 +9,6 @@ const slicePlaneEl = document.querySelector("#slice-plane");
 const facePickerEl = document.querySelector("#face-picker");
 const layerNumberEl = document.querySelector("#layer-number");
 const layerPickerEl = document.querySelector("#layer-picker");
-const axisXEl = document.querySelector("#axis-x");
 const axisYEl = document.querySelector("#axis-y");
 const rowSumsEl = document.querySelector("#row-sums");
 const columnSumsEl = document.querySelector("#column-sums");
@@ -33,6 +32,7 @@ const emptyCellColorInput = document.querySelector("#empty-cell-color");
 const completeColorInput = document.querySelector("#complete-color");
 const cubeMovesInput = document.querySelector("#cube-moves");
 const showRemainingCountsInput = document.querySelector("#show-remaining-counts");
+const allowBackgroundClicksInput = document.querySelector("#allow-background-clicks");
 
 let solution = [];
 let puzzle = [];
@@ -434,8 +434,8 @@ function render() {
   faceNameEl.textContent = face.name;
   slicePlaneEl.textContent = face.plane;
   layerNumberEl.textContent = currentLayer + 1;
-  axisXEl.textContent = face.horizontalAxis;
   axisYEl.textContent = face.verticalAxis;
+  gameCardEl.classList.toggle("allow-background-clicks", allowBackgroundClicksInput.checked);
 
   facePickerEl.innerHTML = "";
   for (const [faceKey, config] of Object.entries(FACE_CONFIGS)) {
@@ -458,7 +458,7 @@ function render() {
       const fixed = puzzle[activeIndex] !== null;
       button.className = `cell-button${fixed ? " fixed" : ""}${conflicts.has(activeIndex) ? " invalid" : ""}`;
       button.dataset.index = activeIndex;
-      button.disabled = fixed;
+      button.setAttribute("aria-disabled", String(fixed));
       button.setAttribute("aria-label", `${fixed ? "Given" : "Cell"}, row ${row + 1}, column ${column + 1}: ${valueClass(values[activeIndex])}`);
 
       for (let depth = 0; depth < SIZE; depth++) {
@@ -470,6 +470,7 @@ function render() {
         orb.className = `orb layer-${depth}${slice === currentLayer ? " active" : ""} ${valueClass(value)}${isFixed ? " fixed" : ""}`;
         orb.dataset.index = index;
         orb.dataset.slice = slice + 1;
+        orb.dataset.fixed = String(isFixed);
         button.appendChild(orb);
       }
       const stackIndices = Array.from({ length: SIZE }, (_, slice) => indexForView(column, row, slice));
@@ -486,8 +487,6 @@ function render() {
         `${button.getAttribute("aria-label")}; stack needs ${stackRemaining.red} red and ${stackRemaining.blue} blue`,
       );
       button.appendChild(stackSum);
-      button.addEventListener("click", onCellClick);
-      button.addEventListener("contextmenu", onCellRightClick);
       cell.appendChild(button);
       boardEl.appendChild(cell);
     }
@@ -533,17 +532,11 @@ function render() {
   }
 }
 
-function onCellClick(event) {
-  if (isTurning) return;
-  const index = Number(event.currentTarget.dataset.index);
-  cycleCell(index, 1);
-}
-
-function onCellRightClick(event) {
-  event.preventDefault();
-  if (isTurning) return;
-  const index = Number(event.currentTarget.dataset.index);
-  cycleCell(index, -1);
+function handleBoardPointer(event, direction) {
+  const orb = event.target.closest(".orb");
+  if (!orb || isTurning || orb.dataset.fixed === "true") return;
+  if (!orb.classList.contains("active") && !allowBackgroundClicksInput.checked) return;
+  cycleCell(Number(orb.dataset.index), direction);
 }
 
 function cycleCell(index, direction) {
@@ -778,6 +771,12 @@ for (const input of [
 }
 cubeMovesInput.addEventListener("change", updateVisualSettings);
 showRemainingCountsInput.addEventListener("change", render);
+allowBackgroundClicksInput.addEventListener("change", render);
+boardEl.addEventListener("click", event => handleBoardPointer(event, 1));
+document.querySelector(".play-area").addEventListener("contextmenu", event => {
+  event.preventDefault();
+  handleBoardPointer(event, -1);
+});
 undoButton.addEventListener("click", () => {
   if (isTurning) return;
   const move = history.pop();

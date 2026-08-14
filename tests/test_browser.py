@@ -55,6 +55,7 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     expect(page.locator(".remaining-counts").first).to_be_hidden()
     page.locator("#show-remaining-counts").check()
     expect(page.locator(".remaining-counts").first).to_be_visible()
+    expect(page.locator("#allow-background-clicks")).to_be_checked()
     panel_box = page.locator("#settings-panel").bounding_box()
     assert panel_box and panel_box["x"] == pytest.approx(0, abs=.5)
     colored_cell = page.locator(".orb.active.coral, .orb.active.blue").first
@@ -134,6 +135,30 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     page.locator(".layer-chip").first.click()
     page.locator("#settings-close").click()
     expect(page.locator("#settings-panel")).to_be_hidden()
+
+    background_orb = page.locator(".orb:not(.active):not(.fixed)").first
+    background_index = background_orb.get_attribute("data-index")
+    background_classes = background_orb.get_attribute("class") or ""
+    background_next = "coral" if "empty" in background_classes else "blue" if "coral" in background_classes else "empty"
+    background_orb.click()
+    expect(page.locator(f'.orb[data-index="{background_index}"]')).to_have_class(re.compile(rf"\b{background_next}\b"))
+
+    page.locator("#settings-button").click()
+    page.locator("#allow-background-clicks").uncheck()
+    page.locator("#settings-close").click()
+    disabled_background = page.locator(".orb:not(.active):not(.fixed)").first
+    disabled_index = disabled_background.get_attribute("data-index")
+    disabled_classes = disabled_background.get_attribute("class")
+    disabled_background.click(force=True)
+    expect(page.locator(f'.orb[data-index="{disabled_index}"]')).to_have_class(disabled_classes)
+    context_menu_prevented = page.locator(".play-area").evaluate(
+        "area => { const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true }); "
+        "area.dispatchEvent(event); return event.defaultPrevented; }"
+    )
+    assert context_menu_prevented
+    page.locator("#settings-button").click()
+    page.locator("#allow-background-clicks").check()
+    page.locator("#settings-close").click()
 
     expect(page.locator(".face-button")).to_have_count(6)
     expect(page.locator(".layer-chip")).to_have_text(["XY 1", "XY 2", "XY 3", "XY 4"])
@@ -228,18 +253,18 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     edited_index = int(editable.get_attribute("data-index"))
     edited_x = edited_index % 4
     edited_y = (edited_index % 16) // 4
-    editable.click()
+    editable.locator(".orb.active").click()
     expect(page.locator(f'.orb.active[data-index="{edited_index}"]')).to_have_class(re.compile(r"\bcoral\b"))
     expect(page.locator(".row-sum").nth(editable_row).locator(".remaining-red")).to_have_text(str(row_red_before - 1))
     expect(page.locator(".column-sum").nth(editable_column).locator(".remaining-red")).to_have_text(str(column_red_before - 1))
     expect(page.locator(f'.cell-button[data-index="{edited_index}"] .stack-sum .remaining-red')).to_have_text(
         str(max(0, stack_red_before - 1))
     )
-    editable.click(button="right")
+    editable.locator(".orb.active").click(button="right")
     expect(page.locator(f'.orb.active[data-index="{edited_index}"]')).to_have_class(re.compile(r"\bempty\b"))
-    page.locator(f'.cell-button[data-index="{edited_index}"]').click(button="right")
+    page.locator(f'.cell-button[data-index="{edited_index}"] .orb.active').click(button="right")
     expect(page.locator(f'.orb.active[data-index="{edited_index}"]')).to_have_class(re.compile(r"\bblue\b"))
-    page.locator(f'.cell-button[data-index="{edited_index}"]').click(button="right")
+    page.locator(f'.cell-button[data-index="{edited_index}"] .orb.active').click(button="right")
     expect(page.locator(f'.orb.active[data-index="{edited_index}"]')).to_have_class(re.compile(r"\bcoral\b"))
 
     page.get_by_role("button", name="View +Z Face").click()

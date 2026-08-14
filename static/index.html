@@ -239,9 +239,11 @@
         border: 0;
         border-radius: 50%;
         background: transparent;
-        cursor: pointer;
+        cursor: default;
       }
-      .cell-button.fixed { cursor: default; }
+      .orb.active { cursor: pointer; }
+      .game-card.allow-background-clicks .orb:not(.active) { cursor: pointer; }
+      .orb.fixed { cursor: default !important; }
       .cell-button:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
 
       .orb {
@@ -346,7 +348,6 @@
         font: 700 10px/1 monospace;
       }
       .axis-y { grid-column: 1; grid-row: 1; align-self: center; }
-      .axis-x { grid-column: 2; grid-row: 3; justify-self: center; }
 
       .row-sums {
         grid-column: 3;
@@ -555,6 +556,10 @@
           <input id="show-remaining-counts" type="checkbox" checked />
           <span>Show remaining counts</span>
         </label>
+        <label class="setting checkbox-setting">
+          <input id="allow-background-clicks" type="checkbox" checked />
+          <span>Allow clicking background</span>
+        </label>
         <label class="setting">
           <span class="setting-label"><span>Red cell</span></span>
           <span class="color-control">
@@ -598,7 +603,6 @@
           <div class="board" id="board" role="grid" aria-label="Layer 1 of the puzzle"></div>
           <div class="row-sums" id="row-sums" aria-label="Remaining colors by row"></div>
           <div class="column-sums" id="column-sums" aria-label="Remaining colors by column"></div>
-          <div class="axis-label axis-x" id="axis-x">X</div>
         </div>
 
         <div class="layer-controls">
@@ -630,6 +634,6 @@
     </main>
 
     <div class="toast" id="toast" role="status"></div>
-    <script src="/static/app.js?v=15"></script>
+    <script src="/static/app.js?v=16"></script>
   </body>
 </html>
