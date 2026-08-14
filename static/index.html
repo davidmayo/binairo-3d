@@ -20,6 +20,7 @@
         --highlight-diameter: 40.6%;
         --highlight-border: 1px;
         --background-cell-opacity: .25;
+        --grid-size: 4;
       }
 
       * { box-sizing: border-box; }
@@ -42,7 +43,26 @@
         margin-bottom: 18px;
       }
       h1 { margin: 0; font-size: 24px; letter-spacing: -.04em; }
-      .top-actions { display: flex; gap: 8px; }
+      .top-actions { display: flex; align-items: center; gap: 8px; }
+      .size-control {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 40px;
+        padding: 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel);
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .size-control select {
+        border: 0;
+        color: var(--ink);
+        background: transparent;
+        font: 600 13px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+        cursor: pointer;
+      }
       .button {
         min-height: 40px;
         padding: 0 14px;
@@ -227,13 +247,13 @@
         grid-column: 2;
         grid-row: 1;
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(var(--grid-size), 1fr);
         aspect-ratio: 1.25;
       }
       .cell { display: grid; place-items: center; min-width: 0; }
       .cell-button {
         position: relative;
-        width: var(--cell-size);
+        width: min(var(--cell-size), 88%);
         aspect-ratio: 1;
         padding: 0;
         border: 0;
@@ -245,6 +265,10 @@
       .game-card.allow-background-clicks .orb:not(.active) { cursor: pointer; }
       .orb.fixed { cursor: default !important; }
       .cell-button:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
+      :root[data-size="6"] .play-area {
+        --cell-size: clamp(52px, 9vw, 70px);
+        --board-cell-diameter: clamp(13px, 2.25vw, 17.5px);
+      }
 
       .orb {
         position: absolute;
@@ -353,13 +377,13 @@
         grid-column: 3;
         grid-row: 1;
         display: grid;
-        grid-template-rows: repeat(4, 1fr);
+        grid-template-rows: repeat(var(--grid-size), 1fr);
       }
       .column-sums {
         grid-column: 2;
         grid-row: 2;
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(var(--grid-size), 1fr);
       }
       .row-sum, .column-sum {
         color: var(--muted);
@@ -491,7 +515,7 @@
       @media (max-width: 540px) {
         main { margin-top: 16px; }
         .top { align-items: flex-start; }
-        .top-actions { flex-direction: column-reverse; }
+        .top-actions { flex-wrap: wrap; justify-content: flex-end; }
         .button { min-height: 36px; padding: 0 10px; font-size: 13px; }
         .face-controls { grid-template-columns: repeat(3, 1fr); }
         .play-area {
@@ -501,7 +525,11 @@
           grid-template-columns: 12px minmax(0, 1fr) 48px;
           column-gap: 3px;
         }
-        .cell-button { width: var(--cell-size); }
+        .cell-button { width: min(var(--cell-size), 88%); }
+        .layer-controls { gap: 6px; padding-inline: 4px; }
+        .layer-picker { gap: 3px; }
+        .layer-chip { width: 42px; font-size: 10px; }
+        .arrow-button { width: 34px; height: 34px; }
         .status-row { grid-template-columns: 1fr auto; }
         .progress-track { display: none; }
       }
@@ -514,6 +542,12 @@
         <div class="top-actions">
           <button class="button" id="undo-button" disabled>Undo</button>
           <button class="button gear-button" id="settings-button" aria-label="Visual settings" aria-expanded="false" aria-controls="settings-panel">⚙</button>
+          <label class="size-control" for="size-select"><span>Size</span>
+            <select id="size-select" aria-label="Puzzle size">
+              <option value="4" selected>4×4×4</option>
+              <option value="6">6×6×6</option>
+            </select>
+          </label>
           <button class="button primary" id="new-button">New game</button>
         </div>
       </header>
@@ -597,7 +631,7 @@
 
       <section class="game-card" aria-label="Binairo puzzle">
         <div class="game-header">
-          <h2><span id="face-name">−Z Face</span> · <span id="slice-plane">XY</span> <span id="layer-number">1</span> <small>of 4</small></h2>
+          <h2><span id="face-name">−Z Face</span> · <span id="slice-plane">XY</span> <span id="layer-number">1</span> <small>of <span id="layer-count">4</span></small></h2>
           <small>Left: red → blue · Right: blue → red</small>
         </div>
 
@@ -631,7 +665,7 @@
       <details>
         <summary>Rules</summary>
         <ul>
-          <li>Every line has two red and two blue circles.</li>
+          <li>Every line has <span id="half-count">two</span> red and <span id="half-count-blue">two</span> blue circles.</li>
           <li>No line contains three adjacent circles of the same color.</li>
           <li>No two rows or columns in any 2D slice are identical.</li>
         </ul>
@@ -639,6 +673,6 @@
     </main>
 
     <div class="toast" id="toast" role="status"></div>
-    <script src="/static/app.js?v=16"></script>
+    <script src="/static/app.js?v=17"></script>
   </body>
 </html>

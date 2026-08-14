@@ -1,5 +1,5 @@
-const SIZE = 4;
-const CELLS = SIZE ** 3;
+let SIZE = 4;
+let CELLS = SIZE ** 3;
 const GENERATOR_SEED = 0x3b1a1044;
 
 const boardEl = document.querySelector("#board");
@@ -8,7 +8,9 @@ const faceNameEl = document.querySelector("#face-name");
 const slicePlaneEl = document.querySelector("#slice-plane");
 const facePickerEl = document.querySelector("#face-picker");
 const layerNumberEl = document.querySelector("#layer-number");
+const layerCountEl = document.querySelector("#layer-count");
 const layerPickerEl = document.querySelector("#layer-picker");
+const sizeSelectEl = document.querySelector("#size-select");
 const axisYEl = document.querySelector("#axis-y");
 const rowSumsEl = document.querySelector("#row-sums");
 const columnSumsEl = document.querySelector("#column-sums");
@@ -45,38 +47,38 @@ let celebrationActive = false;
 let celebrationRun = 0;
 let toastTimer;
 
-const indexOf = (x, y, z) => z * 16 + y * 4 + x;
+const indexOf = (x, y, z) => z * SIZE * SIZE + y * SIZE + x;
 const get = (grid, x, y, z) => grid[indexOf(x, y, z)];
 const QUARTER_TURN = Math.SQRT1_2;
 
 const FACE_CONFIGS = {
   front: {
-    name: "−Z Face", plane: "XY", axis: "z", depthOrder: [0, 1, 2, 3], horizontalAxis: "X", verticalAxis: "Y",
+    name: "−Z Face", plane: "XY", axis: "z", reverseDepth: false, horizontalAxis: "X", verticalAxis: "Y",
     orientation: [0, 0, 0, 1],
     coordinates: (column, row, slice) => [column, row, slice],
   },
   back: {
-    name: "+Z Face", plane: "XY", axis: "z", depthOrder: [3, 2, 1, 0], horizontalAxis: "X", verticalAxis: "Y",
+    name: "+Z Face", plane: "XY", axis: "z", reverseDepth: true, horizontalAxis: "X", verticalAxis: "Y",
     orientation: [0, 1, 0, 0],
     coordinates: (column, row, slice) => [SIZE - 1 - column, row, slice],
   },
   left: {
-    name: "−X Face", plane: "YZ", axis: "x", depthOrder: [0, 1, 2, 3], horizontalAxis: "Z", verticalAxis: "Y",
+    name: "−X Face", plane: "YZ", axis: "x", reverseDepth: false, horizontalAxis: "Z", verticalAxis: "Y",
     orientation: [0, -QUARTER_TURN, 0, QUARTER_TURN],
     coordinates: (column, row, slice) => [slice, row, SIZE - 1 - column],
   },
   right: {
-    name: "+X Face", plane: "YZ", axis: "x", depthOrder: [3, 2, 1, 0], horizontalAxis: "Z", verticalAxis: "Y",
+    name: "+X Face", plane: "YZ", axis: "x", reverseDepth: true, horizontalAxis: "Z", verticalAxis: "Y",
     orientation: [0, QUARTER_TURN, 0, QUARTER_TURN],
     coordinates: (column, row, slice) => [slice, row, column],
   },
   up: {
-    name: "−Y Face", plane: "XZ", axis: "y", depthOrder: [0, 1, 2, 3], horizontalAxis: "X", verticalAxis: "Z",
+    name: "−Y Face", plane: "XZ", axis: "y", reverseDepth: false, horizontalAxis: "X", verticalAxis: "Z",
     orientation: [QUARTER_TURN, 0, 0, QUARTER_TURN],
     coordinates: (column, row, slice) => [column, slice, SIZE - 1 - row],
   },
   down: {
-    name: "+Y Face", plane: "XZ", axis: "y", depthOrder: [3, 2, 1, 0], horizontalAxis: "X", verticalAxis: "Z",
+    name: "+Y Face", plane: "XZ", axis: "y", reverseDepth: true, horizontalAxis: "X", verticalAxis: "Z",
     orientation: [-QUARTER_TURN, 0, 0, QUARTER_TURN],
     coordinates: (column, row, slice) => [column, slice, row],
   },
@@ -86,11 +88,20 @@ function indexForView(column, row, slice) {
   return indexOf(...FACE_CONFIGS[currentFace].coordinates(column, row, slice));
 }
 
+function depthOrder(face = FACE_CONFIGS[currentFace]) {
+  const order = Array.from({ length: SIZE }, (_, index) => index);
+  return face.reverseDepth ? order.reverse() : order;
+}
+
+function coordinatesForIndex(index) {
+  const z = Math.floor(index / (SIZE * SIZE));
+  const y = Math.floor((index % (SIZE * SIZE)) / SIZE);
+  const x = index % SIZE;
+  return { x, y, z };
+}
+
 function sliceForIndex(index) {
-  const z = Math.floor(index / 16);
-  const y = Math.floor((index % 16) / 4);
-  const x = index % 4;
-  return { x, y, z }[FACE_CONFIGS[currentFace].axis];
+  return coordinatesForIndex(index)[FACE_CONFIGS[currentFace].axis];
 }
 
 function seededRandom(seed) {
@@ -149,9 +160,9 @@ function updateStackPositions() {
   const angle = stackAngle * Math.PI / 180;
   const stepX = stackSpacing * Math.cos(angle);
   const stepY = -stackSpacing * Math.sin(angle);
-  const selectedDepth = FACE_CONFIGS[currentFace].depthOrder.indexOf(currentLayer);
+  const selectedDepth = depthOrder().indexOf(currentLayer);
   for (let depth = 0; depth < SIZE; depth++) {
-    const offset = cubeMovesInput.checked ? depth - selectedDepth : depth - 1.5;
+    const offset = cubeMovesInput.checked ? depth - selectedDepth : depth - (SIZE - 1) / 2;
     document.documentElement.style.setProperty(`--layer-${depth}-x`, `${offset * stepX}px`);
     document.documentElement.style.setProperty(`--layer-${depth}-y`, `${offset * stepY}px`);
   }
@@ -166,11 +177,11 @@ function validLine(line, complete = false) {
   const filled = line.filter(v => v !== null);
   const ones = filled.filter(Boolean).length;
   const zeros = filled.length - ones;
-  if (ones > 2 || zeros > 2) return false;
-  for (let i = 0; i < 2; i++) {
+  if (ones > SIZE / 2 || zeros > SIZE / 2) return false;
+  for (let i = 0; i < SIZE - 2; i++) {
     if (line[i] !== null && line[i] === line[i + 1] && line[i] === line[i + 2]) return false;
   }
-  return !complete || filled.length === 4;
+  return !complete || filled.length === SIZE;
 }
 
 function planeLines(grid, axis, fixed) {
@@ -200,7 +211,7 @@ function planeLines(grid, axis, fixed) {
 function validPlane(grid, axis, fixed, requireComplete = false) {
   const lines = planeLines(grid, axis, fixed);
   if (!lines.every(line => validLine(line, requireComplete))) return false;
-  for (const group of [lines.slice(0, 4), lines.slice(4)]) {
+  for (const group of [lines.slice(0, SIZE), lines.slice(SIZE)]) {
     const complete = group.filter(line => line.every(v => v !== null));
     const signatures = complete.map(line => line.map(Number).join(""));
     if (new Set(signatures).size !== signatures.length) return false;
@@ -214,7 +225,9 @@ function allPlanesValid(grid, requireComplete = false) {
   );
 }
 
-function generateBoards() {
+// Keep the established 4×4×4 board exactly as it was; the six-cube uses the
+// scalable construction below.
+function generateFourBoards() {
   const lines = [];
   for (let bits = 0; bits < 16; bits++) {
     const line = Array.from({ length: 4 }, (_, i) => Boolean((bits >> i) & 1));
@@ -228,7 +241,7 @@ function generateBoards() {
   return boards;
 }
 
-const VALID_BOARDS = generateBoards();
+const VALID_FOUR_BOARDS = generateFourBoards();
 
 function shuffle(items) {
   const result = [...items];
@@ -240,24 +253,43 @@ function shuffle(items) {
 }
 
 function generateSolution() {
-  const grid = Array(CELLS).fill(null);
-  const candidates = shuffle(VALID_BOARDS);
+  if (SIZE === 4) {
+    const grid = Array(CELLS).fill(null);
+    const candidates = shuffle(VALID_FOUR_BOARDS);
 
-  function placeLayer(z) {
-    if (z === SIZE) return allPlanesValid(grid, true);
-    for (const candidate of shuffle(candidates)) {
-      for (let i = 0; i < 16; i++) grid[z * 16 + i] = candidate[i];
-      const relevant = ["x", "y"].every(axis =>
-        Array.from({ length: SIZE }, (_, fixed) => validPlane(grid, axis, fixed)).every(Boolean)
-      );
-      if (relevant && placeLayer(z + 1)) return true;
-      for (let i = 0; i < 16; i++) grid[z * 16 + i] = null;
+    function placeLayer(z) {
+      if (z === SIZE) return allPlanesValid(grid, true);
+      for (const candidate of shuffle(candidates)) {
+        for (let i = 0; i < 16; i++) grid[z * 16 + i] = candidate[i];
+        const relevant = ["x", "y"].every(axis =>
+          Array.from({ length: SIZE }, (_, fixed) => validPlane(grid, axis, fixed)).every(Boolean)
+        );
+        if (relevant && placeLayer(z + 1)) return true;
+        for (let i = 0; i < 16; i++) grid[z * 16 + i] = null;
+      }
+      return false;
     }
-    return false;
+
+    if (!placeLayer(0)) throw new Error("Could not generate a valid cube");
+    return grid;
   }
 
-  if (!placeLayer(0)) throw new Error("Could not generate a valid cube");
+  const patterns = {
+    6: [true, true, false, true, false, false],
+  };
+  const pattern = patterns[SIZE];
+  if (!pattern) throw new Error(`Unsupported cube size: ${SIZE}`);
+  const grid = Array.from({ length: CELLS }, (_, index) => {
+    const { x, y, z } = coordinatesForIndex(index);
+    return pattern[(x + y + z) % SIZE];
+  });
+  if (!allPlanesValid(grid, true)) throw new Error("Could not generate a valid cube");
   return grid;
+}
+
+function validAtIndex(grid, index) {
+  const { x, y, z } = coordinatesForIndex(index);
+  return validPlane(grid, "x", x) && validPlane(grid, "y", y) && validPlane(grid, "z", z);
 }
 
 function countSolutions(start, limit = 2) {
@@ -272,7 +304,7 @@ function countSolutions(start, limit = 2) {
       if (grid[i] !== null) continue;
       const options = [false, true].filter(value => {
         grid[i] = value;
-        const ok = allPlanesValid(grid);
+        const ok = validAtIndex(grid, i);
         grid[i] = null;
         return ok;
       });
@@ -302,7 +334,7 @@ function countSolutions(start, limit = 2) {
 function makePuzzle(full) {
   const clues = [...full];
   const order = shuffle(Array.from({ length: CELLS }, (_, i) => i));
-  const targetClues = 22 + Math.floor(random() * 4);
+  const targetClues = SIZE === 4 ? 22 + Math.floor(random() * 4) : 108;
   for (const index of order) {
     if (clues.filter(v => v !== null).length <= targetClues) break;
     const saved = clues[index];
@@ -326,8 +358,8 @@ function findConflicts(grid) {
         line.forEach((value, position) => {
           if (value === null) return;
           let x, y, z;
-          const isColumn = lineIndex >= 4;
-          const a = lineIndex % 4;
+          const isColumn = lineIndex >= SIZE;
+          const a = lineIndex % SIZE;
           const b = position;
           if (axis === "z") [x, y, z] = isColumn ? [a, b, fixed] : [b, a, fixed];
           if (axis === "y") [x, y, z] = isColumn ? [a, fixed, b] : [b, fixed, a];
@@ -343,16 +375,16 @@ function findConflicts(grid) {
 function duplicateInGroup(lines, lineIndex) {
   const line = lines[lineIndex];
   if (!line.every(v => v !== null)) return false;
-  const start = lineIndex < 4 ? 0 : 4;
+  const start = lineIndex < SIZE ? 0 : SIZE;
   const signature = line.map(Number).join("");
-  return lines.slice(start, start + 4).filter(other => other.every(v => v !== null) && other.map(Number).join("") === signature).length > 1;
+  return lines.slice(start, start + SIZE).filter(other => other.every(v => v !== null) && other.map(Number).join("") === signature).length > 1;
 }
 
 function remainingColors(indices) {
   const line = indices.map(index => values[index]);
   return {
-    red: Math.max(0, 2 - line.filter(value => value === false).length),
-    blue: Math.max(0, 2 - line.filter(value => value === true).length),
+    red: Math.max(0, SIZE / 2 - line.filter(value => value === false).length),
+    blue: Math.max(0, SIZE / 2 - line.filter(value => value === true).length),
   };
 }
 
@@ -408,7 +440,7 @@ function alignStackSumsWithHighlights() {
   for (const cell of boardEl.querySelectorAll(".cell-button")) {
     const activeOrb = cell.querySelector(".orb.active");
     const nearOrb = cell.querySelector(".orb.layer-0");
-    const farOrb = cell.querySelector(".orb.layer-3");
+    const farOrb = cell.querySelector(`.orb.layer-${SIZE - 1}`);
     const stackSum = cell.querySelector(".stack-sum");
     if (!activeOrb || !nearOrb || !farOrb || !stackSum) continue;
     const activeBounds = activeOrb.getBoundingClientRect();
@@ -436,6 +468,7 @@ function render() {
   faceNameEl.textContent = face.name;
   slicePlaneEl.textContent = face.plane;
   layerNumberEl.textContent = currentLayer + 1;
+  layerCountEl.textContent = SIZE;
   axisYEl.textContent = face.verticalAxis;
   gameCardEl.classList.toggle("allow-background-clicks", allowBackgroundClicksInput.checked);
 
@@ -463,8 +496,9 @@ function render() {
       button.setAttribute("aria-disabled", String(fixed));
       button.setAttribute("aria-label", `${fixed ? "Given" : "Cell"}, row ${row + 1}, column ${column + 1}: ${valueClass(values[activeIndex])}`);
 
+      const orderedDepths = depthOrder(face);
       for (let depth = 0; depth < SIZE; depth++) {
-        const slice = face.depthOrder[depth];
+        const slice = orderedDepths[depth];
         const index = indexForView(column, row, slice);
         const orb = document.createElement("span");
         const value = values[index];
@@ -473,13 +507,17 @@ function render() {
         orb.dataset.index = index;
         orb.dataset.slice = slice + 1;
         orb.dataset.fixed = String(isFixed);
+        orb.style.setProperty("--stack-x", `var(--layer-${depth}-x)`);
+        orb.style.setProperty("--stack-y", `var(--layer-${depth}-y)`);
         button.appendChild(orb);
       }
       const stackIndices = Array.from({ length: SIZE }, (_, slice) => indexForView(column, row, slice));
       const stackRemaining = remainingColors(stackIndices);
-      const selectedDepth = face.depthOrder.indexOf(currentLayer);
+      const selectedDepth = orderedDepths.indexOf(currentLayer);
       const stackSum = document.createElement("span");
       stackSum.className = `stack-sum layer-${selectedDepth}`;
+      stackSum.style.setProperty("--stack-x", `var(--layer-${selectedDepth}-x)`);
+      stackSum.style.setProperty("--stack-y", `var(--layer-${selectedDepth}-y)`);
       stackSum.classList.add("remaining-counts");
       stackSum.hidden = !showRemainingCountsInput.checked;
       stackSum.innerHTML = sumMarkup(stackRemaining);
@@ -499,7 +537,7 @@ function render() {
   alignStackSumsWithHighlights();
 
   layerPickerEl.innerHTML = "";
-  for (const slice of face.depthOrder) {
+  for (const slice of depthOrder(face)) {
     const sliceIndices = Array.from({ length: SIZE * SIZE }, (_, position) => {
       const row = Math.floor(position / SIZE);
       const column = position % SIZE;
@@ -511,7 +549,7 @@ function render() {
     chip.className = `layer-chip${slice === currentLayer ? " active" : ""}${progress === 1 ? " complete" : ""}`;
     chip.textContent = `${face.plane} ${slice + 1}`;
     chip.style.setProperty("--slice-progress", `${progress * 100}%`);
-    chip.setAttribute("aria-label", `Show ${face.plane} slice ${slice + 1}, ${filledInSlice} of 16 cells filled`);
+    chip.setAttribute("aria-label", `Show ${face.plane} slice ${slice + 1}, ${filledInSlice} of ${SIZE * SIZE} cells filled`);
     chip.addEventListener("click", () => setLayer(slice));
     layerPickerEl.appendChild(chip);
   }
@@ -560,7 +598,7 @@ function setLayer(layer) {
 
 function moveLayer(offset) {
   if (isTurning) return;
-  const order = FACE_CONFIGS[currentFace].depthOrder;
+  const order = depthOrder();
   const position = order.indexOf(currentLayer);
   setLayer(order[(position + offset + SIZE) % SIZE]);
 }
@@ -576,11 +614,9 @@ function captureOrbCenters() {
 }
 
 function cubeCoordinates(index) {
-  return [
-    index % 4 - 1.5,
-    Math.floor((index % 16) / 4) - 1.5,
-    Math.floor(index / 16) - 1.5,
-  ];
+  const { x, y, z } = coordinatesForIndex(index);
+  const center = (SIZE - 1) / 2;
+  return [x - center, y - center, z - center];
 }
 
 function quaternionDot(first, second) {
@@ -758,8 +794,22 @@ function showToast(message) {
   toastTimer = setTimeout(() => toast.classList.remove("show"), 2800);
 }
 
+function configureSize(size) {
+  SIZE = size;
+  CELLS = SIZE ** 3;
+  document.documentElement.style.setProperty("--grid-size", SIZE);
+  document.documentElement.dataset.size = String(SIZE);
+  layerCountEl.textContent = SIZE;
+  const halfWord = SIZE / 2 === 2 ? "two" : "three";
+  document.querySelector("#half-count").textContent = halfWord;
+  document.querySelector("#half-count-blue").textContent = halfWord;
+}
+
 function newGame() {
-  if (isTurning && !celebrationActive) return;
+  if (isTurning && !celebrationActive) {
+    sizeSelectEl.value = String(SIZE);
+    return;
+  }
   stopWinAnimation();
   isTurning = false;
   gameCardEl.classList.remove("turning", "equalized");
@@ -768,6 +818,7 @@ function newGame() {
   button.disabled = true;
   button.textContent = "Building…";
   requestAnimationFrame(() => setTimeout(() => {
+    configureSize(Number(sizeSelectEl.value));
     resetGenerator();
     solution = generateSolution();
     puzzle = makePuzzle(solution);
@@ -785,6 +836,7 @@ function newGame() {
 document.querySelector("#prev-layer").addEventListener("click", () => moveLayer(-1));
 document.querySelector("#next-layer").addEventListener("click", () => moveLayer(1));
 document.querySelector("#new-button").addEventListener("click", newGame);
+sizeSelectEl.addEventListener("change", newGame);
 settingsButton.addEventListener("click", () => setSettingsOpen(settingsPanel.hidden));
 settingsClose.addEventListener("click", () => setSettingsOpen(false));
 for (const input of [
@@ -832,6 +884,7 @@ document.addEventListener("keydown", event => {
   }
 });
 
+configureSize(Number(sizeSelectEl.value));
 resetGenerator();
 solution = generateSolution();
 puzzle = makePuzzle(solution);

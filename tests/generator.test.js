@@ -7,20 +7,24 @@ const source = app.split("const boardEl")[0]
 
 eval(`${source}
   const started = performance.now();
-  resetGenerator();
-  const cube = generateSolution();
-  assert.equal(VALID_BOARDS.length > 0, true);
-  assert.equal(allPlanesValid(cube, true), true);
+  for (const size of [4, 6]) {
+    SIZE = size;
+    CELLS = SIZE ** 3;
+    resetGenerator();
+    const cube = generateSolution();
+    assert.equal(cube.length, CELLS);
+    assert.equal(allPlanesValid(cube, true), true);
 
-  const clues = makePuzzle(cube);
-  const clueCount = clues.filter(value => value !== null).length;
-  assert.equal(clueCount >= 22, true);
-  assert.equal(clueCount <= 30, true);
-  assert.equal(countSolutions(clues), 1);
-  resetGenerator();
-  const repeatedCube = generateSolution();
-  const repeatedClues = makePuzzle(repeatedCube);
-  assert.deepEqual(repeatedCube, cube);
-  assert.deepEqual(repeatedClues, clues);
-  console.log(\`Generator test passed: \${clueCount} clues in \${Math.round(performance.now() - started)}ms\`);
+    const clues = makePuzzle(cube);
+    const clueCount = clues.filter(value => value !== null).length;
+    assert.equal(clueCount < CELLS, true);
+    assert.equal(countSolutions(clues), 1);
+    resetGenerator();
+    const repeatedCube = generateSolution();
+    const repeatedClues = makePuzzle(repeatedCube);
+    assert.deepEqual(repeatedCube, cube);
+    assert.deepEqual(repeatedClues, clues);
+    console.log(\`\${size}x\${size}x\${size}: \${clueCount} clues\`);
+  }
+  console.log(\`Generator tests passed in \${Math.round(performance.now() - started)}ms\`);
 `);

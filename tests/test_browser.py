@@ -315,3 +315,25 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     )
     assert win_duration >= 1290
     page.evaluate("stopWinAnimation()")
+
+
+def test_size_selector_builds_six_cube(page: Page, live_server: str) -> None:
+    page.goto(live_server)
+    expect(page.locator("#size-select")).to_have_value("4")
+    page.locator("#size-select").select_option("6")
+    page.wait_for_function("!document.querySelector('#new-button').disabled")
+
+    expect(page.locator(".cell-button")).to_have_count(36)
+    expect(page.locator(".orb")).to_have_count(216)
+    expect(page.locator(".layer-chip")).to_have_text(
+        ["XY 1", "XY 2", "XY 3", "XY 4", "XY 5", "XY 6"]
+    )
+    expect(page.locator("#layer-count")).to_have_text("6")
+    expect(page.locator("#progress-text")).to_contain_text("/ 216")
+    expect(page.locator("#half-count")).to_have_text("three")
+    assert page.evaluate("allPlanesValid(solution, true)") is True
+
+    page.locator("#size-select").select_option("4")
+    page.wait_for_function("!document.querySelector('#new-button').disabled")
+    expect(page.locator(".cell-button")).to_have_count(16)
+    expect(page.locator(".layer-chip")).to_have_count(4)

@@ -10,7 +10,7 @@ def test_homepage_loads_game() -> None:
     response = client.get("/")
     assert response.status_code == 200
     assert "3D Binairo" in response.text
-    assert "4×4×4" not in response.text
+    assert "<h1>3D Binairo</h1>" in response.text
     assert "beautifully done" not in client.get("/static/app.js").text
     assert 'id="board"' in response.text
     assert 'id="settings-panel"' in response.text
@@ -20,6 +20,9 @@ def test_homepage_loads_game() -> None:
     assert 'id="show-remaining-counts"' in response.text
     assert 'id="complete-color"' in response.text
     assert 'id="allow-background-clicks"' in response.text
+    assert 'id="size-select"' in response.text
+    assert "4×4×4" in response.text
+    assert "6×6×6" in response.text
     assert 'id="axis-x"' not in response.text
     assert "Think outside" not in response.text
     assert "<style>" in response.text
