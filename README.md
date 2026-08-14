@@ -12,6 +12,14 @@ Then visit <http://127.0.0.1:8000>.
 
 ## Tests
 
+Install the Firefox browser binary once:
+
+```powershell
+uv run playwright install firefox
+```
+
+Then run the complete Python, JavaScript-logic, and Firefox browser suite:
+
 ```powershell
 uv run pytest
 ```
