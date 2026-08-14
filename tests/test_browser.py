@@ -67,11 +67,11 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     colored_diameter_before = colored_cell.evaluate("orb => getComputedStyle(orb, '::after').width")
     background_empty = page.locator(".orb.empty:not(.active)").first
     expect(background_empty).to_have_css("background-color", "rgb(192, 192, 192)")
-    expect(background_empty).to_have_css("opacity", "0.25")
+    expect(background_empty).to_have_css("opacity", "0.2")
     highlighted_empty = page.locator(".orb.active.empty").first
     expect(highlighted_empty).to_have_css("--empty-cell", "#c0c0c0")
     assert highlighted_empty.evaluate("orb => getComputedStyle(orb, '::after').backgroundColor") == "rgb(192, 192, 192)"
-    assert highlighted_empty.evaluate("orb => getComputedStyle(orb, '::after').opacity") == "0.25"
+    assert highlighted_empty.evaluate("orb => getComputedStyle(orb, '::after').opacity") == "0.2"
     page.locator("#highlight-opacity").fill("30")
     page.locator("#highlight-radius").fill("25")
     page.locator("#highlight-border").fill("2")
@@ -111,16 +111,15 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     expect(page.locator(".remaining-check").first).to_have_css("color", "rgb(68, 238, 102)")
     page.locator("#highlight-opacity").fill("0")
     page.locator("#highlight-radius").fill("20.3")
-    page.locator("#highlight-border").fill("1")
-    page.locator("#background-opacity").fill("25")
+    page.locator("#highlight-border").fill("5")
+    page.locator("#background-opacity").fill("20")
     page.locator("#stack-angle").fill("65")
     page.locator("#stack-spacing").fill("24")
     page.locator("#red-cell-color").fill("#f2554a")
     page.locator("#blue-cell-color").fill("#28c7ce")
     page.locator("#empty-cell-color").fill("#c0c0c0")
     page.locator("#complete-color").fill("#65d97b")
-    expect(page.locator("#cube-moves")).not_to_be_checked()
-    page.locator("#cube-moves").check()
+    expect(page.locator("#cube-moves")).to_be_checked()
     page.wait_for_function("!document.querySelector('main').dataset.fitting")
     stationary_before = page.locator(".cell-button").first.locator(".orb.active").bounding_box()
     stationary_cell_before = page.locator(".cell-button").first.bounding_box()
@@ -257,7 +256,7 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
     assert selected_style == {
         "background": "rgba(36, 39, 38, 0)",
         "borderColor": "rgb(36, 39, 38)",
-        "borderWidth": "1px",
+        "borderWidth": "5px",
     }
 
     editable = page.locator(".cell-button:not(.fixed)").first
