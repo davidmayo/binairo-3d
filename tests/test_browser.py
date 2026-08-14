@@ -320,6 +320,8 @@ def test_game_in_firefox(page: Page, live_server: str) -> None:
 def test_size_selector_builds_six_cube(page: Page, live_server: str) -> None:
     page.goto(live_server)
     expect(page.locator("#size-select")).to_have_value("4")
+    four_card_box = page.locator(".game-card").bounding_box()
+    four_cell_box = page.locator(".cell-button").first.bounding_box()
     page.locator("#size-select").select_option("6")
     page.wait_for_function("!document.querySelector('#new-button').disabled")
 
@@ -332,6 +334,11 @@ def test_size_selector_builds_six_cube(page: Page, live_server: str) -> None:
     expect(page.locator("#progress-text")).to_contain_text("/ 216")
     expect(page.locator("#half-count")).to_have_text("three")
     assert page.evaluate("allPlanesValid(solution, true)") is True
+    six_card_box = page.locator(".game-card").bounding_box()
+    six_cell_box = page.locator(".cell-button").first.bounding_box()
+    assert four_card_box and four_cell_box and six_card_box and six_cell_box
+    assert six_card_box["width"] >= four_card_box["width"] * 1.4
+    assert six_cell_box["width"] == pytest.approx(four_cell_box["width"], abs=1)
 
     page.locator("#size-select").select_option("4")
     page.wait_for_function("!document.querySelector('#new-button').disabled")

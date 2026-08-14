@@ -36,6 +36,7 @@
         width: min(760px, calc(100% - 28px));
         margin: 28px auto 60px;
       }
+      :root[data-size="6"] main { width: min(1120px, calc(100% - 28px)); }
       .top {
         display: flex;
         align-items: center;
@@ -266,8 +267,7 @@
       .orb.fixed { cursor: default !important; }
       .cell-button:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
       :root[data-size="6"] .play-area {
-        --cell-size: clamp(52px, 9vw, 70px);
-        --board-cell-diameter: clamp(13px, 2.25vw, 17.5px);
+        width: min(1040px, 100%);
       }
 
       .orb {
